@@ -6,7 +6,7 @@
 #include "defs.h" // 包含统一声明
 
 /* // 前向声明
-void consputc(int c);
+void consoleputc(int c);
 void panic(char *s); */
 
 // 简单的字符串长度函数  遍历字符串直到遇到终止符 \0
@@ -18,20 +18,12 @@ int strlen(const char *s)
     return n;
 }
 
-// 输出单个字符到控制台
-void consputc(int c)
-{
-    // 目前直接使用 UART
-    extern void uartputc(int c);
-    uartputc(c);
-}
-
 // 输出字符串
 /* static void puts(char *s)
 {
     while (*s)
     {
-        consputc(*s);
+        consoleputc(*s);
         s++;
     }
 } */
@@ -67,15 +59,15 @@ static void printint(long long xx, int base, int sign)
         buf[i++] = '-';
 
     while (--i >= 0) // 输出缓冲区中的字符
-        consputc(buf[i]);
+        consoleputc(buf[i]);
 }
 
 // 打印指针
 static void printptr(uint64 x)
 {
     int i;
-    consputc('0');
-    consputc('x');
+    consoleputc('0');
+    consoleputc('x');
     // sizeof(uint64) * 2 = 8 * 2 = 16 是因为每个字节对应两个十六进制字符
     // x << 4 左移四位在十六进制表示上就是向左移动一位
     for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4)
@@ -83,7 +75,7 @@ static void printptr(uint64 x)
         // sizeof(uint64) * 8 - 4 = 64 - 4 = 60
         // 右移60位得到最高的4位（一个十六进制字符),得到最高4位之后 x << 4 丢掉最高4位继续取
         // 循环取，直到打印完16位
-        consputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
+        consoleputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
     }
 }
 
@@ -102,7 +94,7 @@ void vprintf(char *fmt, va_list ap) // va_list 为 c 语言的可变参数类型
     {
         if (c != '%') // 非占位符，说明为普通字符串，直接打印
         {
-            consputc(c);
+            consoleputc(c);
             continue;
         }
         c = fmt[++i] & 0xff; // 读取到 % 符号时需要向下读取一个符号来判断占位符的类型
@@ -124,18 +116,18 @@ void vprintf(char *fmt, va_list ap) // va_list 为 c 语言的可变参数类型
             if ((s = va_arg(ap, char *)) == 0)
                 s = "(null)";
             for (; *s; s++)
-                consputc(*s);
+                consoleputc(*s);
             break;
         case 'c': // 字符
-            consputc(va_arg(ap, uint));
+            consoleputc(va_arg(ap, uint));
             break;
         case '%': // 百分号
-            consputc('%');
+            consoleputc('%');
             break;
         default:
             // 未知格式符，打印原样
-            consputc('%');
-            consputc(c);
+            consoleputc('%');
+            consoleputc(c);
             break;
         }
     }
@@ -148,6 +140,7 @@ void printf(char *fmt, ...)
 
     va_start(ap, fmt); // 表示从 fmt 参数之后开始读取参数
     vprintf(fmt, ap);
+    sync_flush(); // 刷新输出缓冲区
     va_end(ap);
 }
 
@@ -185,13 +178,13 @@ void panic(char *s)
 // 打印二进制数
 void printbin(uint64 x)
 {
-    consputc('0');
-    consputc('b');
+    consoleputc('0');
+    consoleputc('b');
     for (int i = 63; i >= 0; i--)
     {
-        consputc((x & (1UL << i)) ? '1' : '0'); // x & (1UL << i) 检查第 i 位是否为1
+        consoleputc((x & (1UL << i)) ? '1' : '0'); // x & (1UL << i) 检查第 i 位是否为1
         if (i % 4 == 0 && i != 0)
-            consputc('_'); // 分隔符
+            consoleputc('_'); // 分隔符
     }
 }
 
