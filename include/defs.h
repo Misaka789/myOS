@@ -3,6 +3,7 @@
 #define DEFS_H
 
 #include "types.h"
+#include "spinlock.h"
 
 // printf.c
 void printf(char *fmt, ...);
@@ -30,8 +31,21 @@ void console_write_buf(const char *data, int len);
 void consoleputc(int c); // 输出单个字符到控制台
 void sync_flush(void);   // 刷新控制台输出缓冲区
 
+// buddy.c
+void pmm_init(void);
+void *alloc_pages(int);
+void free_pages(void *, int);
+void *alloc_page(void);
+void free_page(void *);
+void buddy_add_memory(void *, void *);
+
 // main.c
 void main(void);
 void *memset(void *dst, int c, uint n);
+
+// spinlock.c
+void initlock(struct spinlock *lk, char *name);
+void acquire(struct spinlock *lk);
+void release(struct spinlock *lk);
 
 #endif

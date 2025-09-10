@@ -14,30 +14,35 @@ CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I./include
 CFLAGS += -fno-stack-protector
 
+#目录设置
+K = kernel
+
 # 链接选项
 LDFLAGS = -z max-page-size=4096
 
 # 内核目标文件
 OBJS = \
-  kernel/entry.o \
-  kernel/start.o \
-  kernel/main.o \
-  kernel/uart.o \
-  kernel/printf.o \
-  kernel/console.o
+  $K/entry.o \
+  $K/start.o \
+  $K/main.o \
+  $K/uart.o \
+  $K/printf.o \
+  $K/console.o \
+  $K/buddy.o	\
+  $K/spinlock.o
 
 # 默认目标
-all: kernel/kernel
+all: $K/kernel
 
 # 编译规则
-kernel/%.o: kernel/%.c
+$K/%.o: $K/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-kernel/%.o: kernel/%.S
+$K/%.o: $K/%.S
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # 链接内核
-kernel/kernel: $(OBJS) kernel/kernel.ld
+$K/kernel: $(OBJS) kernel/kernel.ld
 	$(LD) $(LDFLAGS) -T kernel/kernel.ld -o kernel/kernel $(OBJS)
 	$(OBJDUMP) -S kernel/kernel > kernel/kernel.asm
 

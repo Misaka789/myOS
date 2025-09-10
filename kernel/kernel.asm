@@ -11,8 +11,8 @@ _entry:
     # 公式: sp = stack0 + (hartid + 1) * 4096
     
     la sp, stack0           # 加载 stack0 基地址到栈指针
-    80000000:	00002117          	auipc	sp,0x2
-    80000004:	9c013103          	ld	sp,-1600(sp) # 800019c0 <_GLOBAL_OFFSET_TABLE_+0x10>
+    80000000:	00003117          	auipc	sp,0x3
+    80000004:	d4013103          	ld	sp,-704(sp) # 80002d40 <_GLOBAL_OFFSET_TABLE_+0x10>
     li a0, 1024*4           # a0 = 4096 (每个CPU的栈大小)
     80000008:	6505                	lui	a0,0x1
     csrr a1, mhartid        # a1 = 当前CPU的hart ID
@@ -111,7 +111,7 @@ w_mtvec(uint64 x)
     8000006e:	300027f3          	csrr	a5,mstatus
     x &= ~MSTATUS_MPP_MASK; // 清除MPP字段
     80000072:	7779                	lui	a4,0xffffe
-    80000074:	7ff70713          	addi	a4,a4,2047 # ffffffffffffe7ff <end+0xffffffff7fff4bff>
+    80000074:	7ff70713          	addi	a4,a4,2047 # ffffffffffffe7ff <end+0xffffffff7fff3797>
     80000078:	8ff9                	and	a5,a5,a4
     x |= MSTATUS_MPP_S;     // 设置为监管者模式
     8000007a:	6705                	lui	a4,0x1
@@ -125,8 +125,8 @@ w_mtvec(uint64 x)
 static inline void w_mepc(uint64 x)
 {
   asm volatile("csrw mepc, %0" : : "r"(x));
-    80000086:	00002797          	auipc	a5,0x2
-    8000008a:	94a7b783          	ld	a5,-1718(a5) # 800019d0 <_GLOBAL_OFFSET_TABLE_+0x20>
+    80000086:	00003797          	auipc	a5,0x3
+    8000008a:	cca7b783          	ld	a5,-822(a5) # 80002d50 <_GLOBAL_OFFSET_TABLE_+0x20>
     8000008e:	34179073          	csrw	mepc,a5
   asm volatile("csrr %0, mie" : "=r"(x));
     80000092:	304027f3          	csrr	a5,mie
@@ -203,10 +203,10 @@ void main()
     // 1. 清零BSS段
     // BSS段包含未初始化的全局变量，C语言标准要求它们初始化为0
     memset(edata, 0, end - edata);
-    800000fa:	00002517          	auipc	a0,0x2
-    800000fe:	8be53503          	ld	a0,-1858(a0) # 800019b8 <_GLOBAL_OFFSET_TABLE_+0x8>
-    80000102:	00002617          	auipc	a2,0x2
-    80000106:	8c663603          	ld	a2,-1850(a2) # 800019c8 <_GLOBAL_OFFSET_TABLE_+0x18>
+    800000fa:	00003517          	auipc	a0,0x3
+    800000fe:	c3e53503          	ld	a0,-962(a0) # 80002d38 <_GLOBAL_OFFSET_TABLE_+0x8>
+    80000102:	00003617          	auipc	a2,0x3
+    80000106:	c4663603          	ld	a2,-954(a2) # 80002d48 <_GLOBAL_OFFSET_TABLE_+0x18>
     8000010a:	9e09                	subw	a2,a2,a0
     8000010c:	4581                	li	a1,0
     8000010e:	00000097          	auipc	ra,0x0
@@ -217,16 +217,16 @@ void main()
     80000116:	00000097          	auipc	ra,0x0
     8000011a:	20c080e7          	jalr	524(ra) # 80000322 <uartinit>
     uartputs("riscv-os kernel is starting...\n");
-    8000011e:	00001517          	auipc	a0,0x1
-    80000122:	ee250513          	addi	a0,a0,-286 # 80001000 <_trampoline>
+    8000011e:	00002517          	auipc	a0,0x2
+    80000122:	ee250513          	addi	a0,a0,-286 # 80002000 <_trampoline>
     80000126:	00000097          	auipc	ra,0x0
     8000012a:	260080e7          	jalr	608(ra) # 80000386 <uartputs>
     8000012e:	f14024f3          	csrr	s1,mhartid
 
     uint64 hartid = r_mhartid();
     uartputs("hart ID :");
-    80000132:	00001517          	auipc	a0,0x1
-    80000136:	eee50513          	addi	a0,a0,-274 # 80001020 <_trampoline+0x20>
+    80000132:	00002517          	auipc	a0,0x2
+    80000136:	eee50513          	addi	a0,a0,-274 # 80002020 <_trampoline+0x20>
     8000013a:	00000097          	auipc	ra,0x0
     8000013e:	24c080e7          	jalr	588(ra) # 80000386 <uartputs>
     uartputc('0' + (hartid & 0xf)); // 仅打印最低4位，假设CPU数量不超过16
@@ -235,26 +235,26 @@ void main()
     8000014a:	00000097          	auipc	ra,0x0
     8000014e:	214080e7          	jalr	532(ra) # 8000035e <uartputc>
     uartputs(" started\n");
-    80000152:	00001517          	auipc	a0,0x1
-    80000156:	ede50513          	addi	a0,a0,-290 # 80001030 <_trampoline+0x30>
+    80000152:	00002517          	auipc	a0,0x2
+    80000156:	ede50513          	addi	a0,a0,-290 # 80002030 <_trampoline+0x30>
     8000015a:	00000097          	auipc	ra,0x0
     8000015e:	22c080e7          	jalr	556(ra) # 80000386 <uartputs>
     uartputs("Hart ");
-    80000162:	00001517          	auipc	a0,0x1
-    80000166:	ede50513          	addi	a0,a0,-290 # 80001040 <_trampoline+0x40>
+    80000162:	00002517          	auipc	a0,0x2
+    80000166:	ede50513          	addi	a0,a0,-290 # 80002040 <_trampoline+0x40>
     8000016a:	00000097          	auipc	ra,0x0
     8000016e:	21c080e7          	jalr	540(ra) # 80000386 <uartputs>
     // 这里可以打印CPU ID，但需要实现数字转字符串函数
     uartputs("started\n");
-    80000172:	00001517          	auipc	a0,0x1
-    80000176:	ed650513          	addi	a0,a0,-298 # 80001048 <_trampoline+0x48>
+    80000172:	00002517          	auipc	a0,0x2
+    80000176:	ed650513          	addi	a0,a0,-298 # 80002048 <_trampoline+0x48>
     8000017a:	00000097          	auipc	ra,0x0
     8000017e:	20c080e7          	jalr	524(ra) # 80000386 <uartputs>
 
     // 3. 基础系统初始化
     uartputs("Basic initialization complete\n");
-    80000182:	00001517          	auipc	a0,0x1
-    80000186:	ed650513          	addi	a0,a0,-298 # 80001058 <_trampoline+0x58>
+    80000182:	00002517          	auipc	a0,0x2
+    80000186:	ed650513          	addi	a0,a0,-298 # 80002058 <_trampoline+0x58>
     8000018a:	00000097          	auipc	ra,0x0
     8000018e:	1fc080e7          	jalr	508(ra) # 80000386 <uartputs>
 
@@ -263,13 +263,13 @@ void main()
     80000192:	00001097          	auipc	ra,0x1
     80000196:	97a080e7          	jalr	-1670(ra) # 80000b0c <console_clear>
     printf("RISC-V OS Kernel Starting...\n");
-    8000019a:	00001517          	auipc	a0,0x1
-    8000019e:	ede50513          	addi	a0,a0,-290 # 80001078 <_trampoline+0x78>
+    8000019a:	00002517          	auipc	a0,0x2
+    8000019e:	ede50513          	addi	a0,a0,-290 # 80002078 <_trampoline+0x78>
     800001a2:	00000097          	auipc	ra,0x0
     800001a6:	52e080e7          	jalr	1326(ra) # 800006d0 <printf>
     printf("==============================\n");
-    800001aa:	00001517          	auipc	a0,0x1
-    800001ae:	eee50513          	addi	a0,a0,-274 # 80001098 <_trampoline+0x98>
+    800001aa:	00002517          	auipc	a0,0x2
+    800001ae:	eee50513          	addi	a0,a0,-274 # 80002098 <_trampoline+0x98>
     800001b2:	00000097          	auipc	ra,0x0
     800001b6:	51e080e7          	jalr	1310(ra) # 800006d0 <printf>
 
@@ -277,79 +277,79 @@ void main()
     // uint64 hartid = r_mhartid();
     printf("Hart ID: %d\n", (int)hartid);
     800001ba:	0004859b          	sext.w	a1,s1
-    800001be:	00001517          	auipc	a0,0x1
-    800001c2:	efa50513          	addi	a0,a0,-262 # 800010b8 <_trampoline+0xb8>
+    800001be:	00002517          	auipc	a0,0x2
+    800001c2:	efa50513          	addi	a0,a0,-262 # 800020b8 <_trampoline+0xb8>
     800001c6:	00000097          	auipc	ra,0x0
     800001ca:	50a080e7          	jalr	1290(ra) # 800006d0 <printf>
     printf("Hart started successfully\n");
-    800001ce:	00001517          	auipc	a0,0x1
-    800001d2:	efa50513          	addi	a0,a0,-262 # 800010c8 <_trampoline+0xc8>
+    800001ce:	00002517          	auipc	a0,0x2
+    800001d2:	efa50513          	addi	a0,a0,-262 # 800020c8 <_trampoline+0xc8>
     800001d6:	00000097          	auipc	ra,0x0
     800001da:	4fa080e7          	jalr	1274(ra) # 800006d0 <printf>
 
     // 5. 测试各种 printf 格式
     printf("Testing printf formats:\n");
-    800001de:	00001517          	auipc	a0,0x1
-    800001e2:	f0a50513          	addi	a0,a0,-246 # 800010e8 <_trampoline+0xe8>
+    800001de:	00002517          	auipc	a0,0x2
+    800001e2:	f0a50513          	addi	a0,a0,-246 # 800020e8 <_trampoline+0xe8>
     800001e6:	00000097          	auipc	ra,0x0
     800001ea:	4ea080e7          	jalr	1258(ra) # 800006d0 <printf>
     printf("Decimal: %d\n", 42);
     800001ee:	02a00593          	li	a1,42
-    800001f2:	00001517          	auipc	a0,0x1
-    800001f6:	f1650513          	addi	a0,a0,-234 # 80001108 <_trampoline+0x108>
+    800001f2:	00002517          	auipc	a0,0x2
+    800001f6:	f1650513          	addi	a0,a0,-234 # 80002108 <_trampoline+0x108>
     800001fa:	00000097          	auipc	ra,0x0
     800001fe:	4d6080e7          	jalr	1238(ra) # 800006d0 <printf>
     printf("Hex: 0x%x\n", 255);
     80000202:	0ff00593          	li	a1,255
-    80000206:	00001517          	auipc	a0,0x1
-    8000020a:	f1250513          	addi	a0,a0,-238 # 80001118 <_trampoline+0x118>
+    80000206:	00002517          	auipc	a0,0x2
+    8000020a:	f1250513          	addi	a0,a0,-238 # 80002118 <_trampoline+0x118>
     8000020e:	00000097          	auipc	ra,0x0
     80000212:	4c2080e7          	jalr	1218(ra) # 800006d0 <printf>
     printf("Pointer: %p\n", (void *)main);
     80000216:	00000597          	auipc	a1,0x0
     8000021a:	eda58593          	addi	a1,a1,-294 # 800000f0 <main>
-    8000021e:	00001517          	auipc	a0,0x1
-    80000222:	f0a50513          	addi	a0,a0,-246 # 80001128 <_trampoline+0x128>
+    8000021e:	00002517          	auipc	a0,0x2
+    80000222:	f0a50513          	addi	a0,a0,-246 # 80002128 <_trampoline+0x128>
     80000226:	00000097          	auipc	ra,0x0
     8000022a:	4aa080e7          	jalr	1194(ra) # 800006d0 <printf>
     printf("String: %s\n", "Hello, World!");
-    8000022e:	00001597          	auipc	a1,0x1
-    80000232:	f0a58593          	addi	a1,a1,-246 # 80001138 <_trampoline+0x138>
-    80000236:	00001517          	auipc	a0,0x1
-    8000023a:	f1250513          	addi	a0,a0,-238 # 80001148 <_trampoline+0x148>
+    8000022e:	00002597          	auipc	a1,0x2
+    80000232:	f0a58593          	addi	a1,a1,-246 # 80002138 <_trampoline+0x138>
+    80000236:	00002517          	auipc	a0,0x2
+    8000023a:	f1250513          	addi	a0,a0,-238 # 80002148 <_trampoline+0x148>
     8000023e:	00000097          	auipc	ra,0x0
     80000242:	492080e7          	jalr	1170(ra) # 800006d0 <printf>
     printf("Character: %c\n", 'A');
     80000246:	04100593          	li	a1,65
-    8000024a:	00001517          	auipc	a0,0x1
-    8000024e:	f0e50513          	addi	a0,a0,-242 # 80001158 <_trampoline+0x158>
+    8000024a:	00002517          	auipc	a0,0x2
+    8000024e:	f0e50513          	addi	a0,a0,-242 # 80002158 <_trampoline+0x158>
     80000252:	00000097          	auipc	ra,0x0
     80000256:	47e080e7          	jalr	1150(ra) # 800006d0 <printf>
 
     // 6. 内存dump示例
     printf("\nMemory dump example:\n");
-    8000025a:	00001517          	auipc	a0,0x1
-    8000025e:	f0e50513          	addi	a0,a0,-242 # 80001168 <_trampoline+0x168>
+    8000025a:	00002517          	auipc	a0,0x2
+    8000025e:	f0e50513          	addi	a0,a0,-242 # 80002168 <_trampoline+0x168>
     80000262:	00000097          	auipc	ra,0x0
     80000266:	46e080e7          	jalr	1134(ra) # 800006d0 <printf>
     // char test_data[] = "Hello, RISC-V OS!";
     char *test_data = "Hello, RISC-V OS!";
     printf("test_data declared\n");
-    8000026a:	00001517          	auipc	a0,0x1
-    8000026e:	f1650513          	addi	a0,a0,-234 # 80001180 <_trampoline+0x180>
+    8000026a:	00002517          	auipc	a0,0x2
+    8000026e:	f1650513          	addi	a0,a0,-234 # 80002180 <_trampoline+0x180>
     80000272:	00000097          	auipc	ra,0x0
     80000276:	45e080e7          	jalr	1118(ra) # 800006d0 <printf>
     printf("test_data address: %p\n", (void *)test_data);
-    8000027a:	00001597          	auipc	a1,0x1
-    8000027e:	f1e58593          	addi	a1,a1,-226 # 80001198 <_trampoline+0x198>
-    80000282:	00001517          	auipc	a0,0x1
-    80000286:	f2e50513          	addi	a0,a0,-210 # 800011b0 <_trampoline+0x1b0>
+    8000027a:	00002597          	auipc	a1,0x2
+    8000027e:	f1e58593          	addi	a1,a1,-226 # 80002198 <_trampoline+0x198>
+    80000282:	00002517          	auipc	a0,0x2
+    80000286:	f2e50513          	addi	a0,a0,-210 # 800021b0 <_trampoline+0x1b0>
     8000028a:	00000097          	auipc	ra,0x0
     8000028e:	446080e7          	jalr	1094(ra) # 800006d0 <printf>
     printf("sizeof(test_data): %d\n", (int)sizeof(test_data));
     80000292:	45a1                	li	a1,8
-    80000294:	00001517          	auipc	a0,0x1
-    80000298:	f3450513          	addi	a0,a0,-204 # 800011c8 <_trampoline+0x1c8>
+    80000294:	00002517          	auipc	a0,0x2
+    80000298:	f3450513          	addi	a0,a0,-204 # 800021c8 <_trampoline+0x1c8>
     8000029c:	00000097          	auipc	ra,0x0
     800002a0:	434080e7          	jalr	1076(ra) # 800006d0 <printf>
 
@@ -357,23 +357,23 @@ void main()
 
     // 7. 系统状态
     printf("\nSystem Status:\n");
-    800002a4:	00001517          	auipc	a0,0x1
-    800002a8:	f3c50513          	addi	a0,a0,-196 # 800011e0 <_trampoline+0x1e0>
+    800002a4:	00002517          	auipc	a0,0x2
+    800002a8:	f3c50513          	addi	a0,a0,-196 # 800021e0 <_trampoline+0x1e0>
     800002ac:	00000097          	auipc	ra,0x0
     800002b0:	424080e7          	jalr	1060(ra) # 800006d0 <printf>
     printf("- UART: OK\n");
-    800002b4:	00001517          	auipc	a0,0x1
-    800002b8:	f4450513          	addi	a0,a0,-188 # 800011f8 <_trampoline+0x1f8>
+    800002b4:	00002517          	auipc	a0,0x2
+    800002b8:	f4450513          	addi	a0,a0,-188 # 800021f8 <_trampoline+0x1f8>
     800002bc:	00000097          	auipc	ra,0x0
     800002c0:	414080e7          	jalr	1044(ra) # 800006d0 <printf>
     printf("- Console: OK\n");
-    800002c4:	00001517          	auipc	a0,0x1
-    800002c8:	f4450513          	addi	a0,a0,-188 # 80001208 <_trampoline+0x208>
+    800002c4:	00002517          	auipc	a0,0x2
+    800002c8:	f4450513          	addi	a0,a0,-188 # 80002208 <_trampoline+0x208>
     800002cc:	00000097          	auipc	ra,0x0
     800002d0:	404080e7          	jalr	1028(ra) # 800006d0 <printf>
     printf("- Printf: OK\n");
-    800002d4:	00001517          	auipc	a0,0x1
-    800002d8:	f4450513          	addi	a0,a0,-188 # 80001218 <_trampoline+0x218>
+    800002d4:	00002517          	auipc	a0,0x2
+    800002d8:	f4450513          	addi	a0,a0,-188 # 80002218 <_trampoline+0x218>
     800002dc:	00000097          	auipc	ra,0x0
     800002e0:	3f4080e7          	jalr	1012(ra) # 800006d0 <printf>
     console_clear();
@@ -381,21 +381,21 @@ void main()
     800002e8:	828080e7          	jalr	-2008(ra) # 80000b0c <console_clear>
 
     printf("\nKernel initialization complete!\n");
-    800002ec:	00001517          	auipc	a0,0x1
-    800002f0:	f3c50513          	addi	a0,a0,-196 # 80001228 <_trampoline+0x228>
+    800002ec:	00002517          	auipc	a0,0x2
+    800002f0:	f3c50513          	addi	a0,a0,-196 # 80002228 <_trampoline+0x228>
     800002f4:	00000097          	auipc	ra,0x0
     800002f8:	3dc080e7          	jalr	988(ra) # 800006d0 <printf>
     printf("Entering idle loop...\n");
-    800002fc:	00001517          	auipc	a0,0x1
-    80000300:	f5450513          	addi	a0,a0,-172 # 80001250 <_trampoline+0x250>
+    800002fc:	00002517          	auipc	a0,0x2
+    80000300:	f5450513          	addi	a0,a0,-172 # 80002250 <_trampoline+0x250>
     80000304:	00000097          	auipc	ra,0x0
     80000308:	3cc080e7          	jalr	972(ra) # 800006d0 <printf>
 
     // 4. 进入无限循环
     // 在后续阶段，这里会被进程调度器替代
     uartputs("Kernel initialization finished, entering idle loop\n");
-    8000030c:	00001517          	auipc	a0,0x1
-    80000310:	f5c50513          	addi	a0,a0,-164 # 80001268 <_trampoline+0x268>
+    8000030c:	00002517          	auipc	a0,0x2
+    80000310:	f5c50513          	addi	a0,a0,-164 # 80002268 <_trampoline+0x268>
     80000314:	00000097          	auipc	ra,0x0
     80000318:	072080e7          	jalr	114(ra) # 80000386 <uartputs>
 
@@ -558,8 +558,8 @@ static void printint(long long xx, int base, int sign)
     do
     {
         buf[i++] = digits[x % base];
-    800003ea:	00001617          	auipc	a2,0x1
-    800003ee:	03660613          	addi	a2,a2,54 # 80001420 <digits>
+    800003ea:	00002617          	auipc	a2,0x2
+    800003ee:	10e60613          	addi	a2,a2,270 # 800024f8 <digits>
     800003f2:	883e                	mv	a6,a5
     800003f4:	2785                	addiw	a5,a5,1
     800003f6:	02b57733          	remu	a4,a0,a1
@@ -657,24 +657,24 @@ void panic(char *s)
 
     // 2. 显示错误信息
     printf("\n");
-    8000049a:	00001517          	auipc	a0,0x1
-    8000049e:	dae50513          	addi	a0,a0,-594 # 80001248 <_trampoline+0x248>
+    8000049a:	00002517          	auipc	a0,0x2
+    8000049e:	e0650513          	addi	a0,a0,-506 # 800022a0 <_trampoline+0x2a0>
     800004a2:	00000097          	auipc	ra,0x0
     800004a6:	22e080e7          	jalr	558(ra) # 800006d0 <printf>
     printf("================================\n");
-    800004aa:	00001517          	auipc	a0,0x1
-    800004ae:	df650513          	addi	a0,a0,-522 # 800012a0 <_trampoline+0x2a0>
+    800004aa:	00002517          	auipc	a0,0x2
+    800004ae:	dfe50513          	addi	a0,a0,-514 # 800022a8 <_trampoline+0x2a8>
     800004b2:	00000097          	auipc	ra,0x0
     800004b6:	21e080e7          	jalr	542(ra) # 800006d0 <printf>
     printf("KERNEL PANIC: %s\n", s);
     800004ba:	85a6                	mv	a1,s1
-    800004bc:	00001517          	auipc	a0,0x1
-    800004c0:	e0c50513          	addi	a0,a0,-500 # 800012c8 <_trampoline+0x2c8>
+    800004bc:	00002517          	auipc	a0,0x2
+    800004c0:	e1450513          	addi	a0,a0,-492 # 800022d0 <_trampoline+0x2d0>
     800004c4:	00000097          	auipc	ra,0x0
     800004c8:	20c080e7          	jalr	524(ra) # 800006d0 <printf>
     printf("================================\n");
-    800004cc:	00001517          	auipc	a0,0x1
-    800004d0:	dd450513          	addi	a0,a0,-556 # 800012a0 <_trampoline+0x2a0>
+    800004cc:	00002517          	auipc	a0,0x2
+    800004d0:	ddc50513          	addi	a0,a0,-548 # 800022a8 <_trampoline+0x2a8>
     800004d4:	00000097          	auipc	ra,0x0
     800004d8:	1fc080e7          	jalr	508(ra) # 800006d0 <printf>
     800004dc:	f14025f3          	csrr	a1,mhartid
@@ -682,8 +682,8 @@ void panic(char *s)
     // 3. 显示当前状态信息（调试用）
     printf("Hart ID: %d\n", (int)r_mhartid());
     800004e0:	2581                	sext.w	a1,a1
-    800004e2:	00001517          	auipc	a0,0x1
-    800004e6:	bd650513          	addi	a0,a0,-1066 # 800010b8 <_trampoline+0xb8>
+    800004e2:	00002517          	auipc	a0,0x2
+    800004e6:	bd650513          	addi	a0,a0,-1066 # 800020b8 <_trampoline+0xb8>
     800004ea:	00000097          	auipc	ra,0x0
     800004ee:	1e6080e7          	jalr	486(ra) # 800006d0 <printf>
 
@@ -692,8 +692,8 @@ void panic(char *s)
 
     // 5. 系统完全停止
     printf("System halted. Please reboot.\n");
-    800004f2:	00001517          	auipc	a0,0x1
-    800004f6:	dee50513          	addi	a0,a0,-530 # 800012e0 <_trampoline+0x2e0>
+    800004f2:	00002517          	auipc	a0,0x2
+    800004f6:	df650513          	addi	a0,a0,-522 # 800022e8 <_trampoline+0x2e8>
     800004fa:	00000097          	auipc	ra,0x0
     800004fe:	1d6080e7          	jalr	470(ra) # 800006d0 <printf>
 
@@ -733,13 +733,13 @@ void panic(char *s)
     80000534:	02500993          	li	s3,37
         switch (c)
     80000538:	4b55                	li	s6,21
-    8000053a:	00001c17          	auipc	s8,0x1
-    8000053e:	e8ec0c13          	addi	s8,s8,-370 # 800013c8 <_trampoline+0x3c8>
+    8000053a:	00002c17          	auipc	s8,0x2
+    8000053e:	f66c0c13          	addi	s8,s8,-154 # 800024a0 <_trampoline+0x4a0>
     consoleputc('x');
     80000542:	4cc1                	li	s9,16
         consoleputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
-    80000544:	00001a97          	auipc	s5,0x1
-    80000548:	edca8a93          	addi	s5,s5,-292 # 80001420 <digits>
+    80000544:	00002a97          	auipc	s5,0x2
+    80000548:	fb4a8a93          	addi	s5,s5,-76 # 800024f8 <digits>
     8000054c:	a835                	j	80000588 <vprintf+0x80>
     8000054e:	e4a6                	sd	s1,72(sp)
     80000550:	e0ca                	sd	s2,64(sp)
@@ -752,8 +752,8 @@ void panic(char *s)
     8000055e:	e466                	sd	s9,8(sp)
     80000560:	e06a                	sd	s10,0(sp)
         panic("null fmt");
-    80000562:	00001517          	auipc	a0,0x1
-    80000566:	da650513          	addi	a0,a0,-602 # 80001308 <_trampoline+0x308>
+    80000562:	00002517          	auipc	a0,0x2
+    80000566:	dae50513          	addi	a0,a0,-594 # 80002310 <_trampoline+0x310>
     8000056a:	00000097          	auipc	ra,0x0
     8000056e:	f24080e7          	jalr	-220(ra) # 8000048e <panic>
             consoleputc(c);
@@ -849,8 +849,8 @@ void panic(char *s)
     80000658:	8a5e                	mv	s4,s7
     8000065a:	b705                	j	8000057a <vprintf+0x72>
                 s = "(null)";
-    8000065c:	00001a17          	auipc	s4,0x1
-    80000660:	ca4a0a13          	addi	s4,s4,-860 # 80001300 <_trampoline+0x300>
+    8000065c:	00002a17          	auipc	s4,0x2
+    80000660:	caca0a13          	addi	s4,s4,-852 # 80002308 <_trampoline+0x308>
             for (; *s; s++)
     80000664:	02800513          	li	a0,40
     80000668:	b7c5                	j	80000648 <vprintf+0x140>
@@ -1001,23 +1001,23 @@ void hexdump(void *addr, int len)
     80000778:	84ae                	mv	s1,a1
     8000077a:	f8b43423          	sd	a1,-120(s0)
     printf("About to call hexdump...\n");
-    8000077e:	00001517          	auipc	a0,0x1
-    80000782:	b9a50513          	addi	a0,a0,-1126 # 80001318 <_trampoline+0x318>
+    8000077e:	00002517          	auipc	a0,0x2
+    80000782:	ba250513          	addi	a0,a0,-1118 # 80002320 <_trampoline+0x320>
     80000786:	00000097          	auipc	ra,0x0
     8000078a:	f4a080e7          	jalr	-182(ra) # 800006d0 <printf>
     unsigned char *p = (unsigned char *)addr;
 
     printf("hexdump函数转换后的无符号地址为 : %p\n", p);
     8000078e:	85ca                	mv	a1,s2
-    80000790:	00001517          	auipc	a0,0x1
-    80000794:	ba850513          	addi	a0,a0,-1112 # 80001338 <_trampoline+0x338>
+    80000790:	00002517          	auipc	a0,0x2
+    80000794:	bb050513          	addi	a0,a0,-1104 # 80002340 <_trampoline+0x340>
     80000798:	00000097          	auipc	ra,0x0
     8000079c:	f38080e7          	jalr	-200(ra) # 800006d0 <printf>
 
     printf("Memory dump at %p:\n", addr);
     800007a0:	85ca                	mv	a1,s2
-    800007a2:	00001517          	auipc	a0,0x1
-    800007a6:	bce50513          	addi	a0,a0,-1074 # 80001370 <_trampoline+0x370>
+    800007a2:	00002517          	auipc	a0,0x2
+    800007a6:	bd650513          	addi	a0,a0,-1066 # 80002378 <_trampoline+0x378>
     800007aa:	00000097          	auipc	ra,0x0
     800007ae:	f26080e7          	jalr	-218(ra) # 800006d0 <printf>
     for (int i = 0; i < len; i += 16)
@@ -1046,16 +1046,16 @@ void hexdump(void *addr, int len)
             char c = p[i + j];
             printf("%c", (c >= 32 && c <= 126) ? c : '.');
     800007de:	05e00b93          	li	s7,94
-    800007e2:	00001b17          	auipc	s6,0x1
-    800007e6:	bc6b0b13          	addi	s6,s6,-1082 # 800013a8 <_trampoline+0x3a8>
+    800007e2:	00002b17          	auipc	s6,0x2
+    800007e6:	bceb0b13          	addi	s6,s6,-1074 # 800023b0 <_trampoline+0x3b0>
             printf("   ");
-    800007ea:	00001a17          	auipc	s4,0x1
-    800007ee:	baea0a13          	addi	s4,s4,-1106 # 80001398 <_trampoline+0x398>
+    800007ea:	00002a17          	auipc	s4,0x2
+    800007ee:	bb6a0a13          	addi	s4,s4,-1098 # 800023a0 <_trampoline+0x3a0>
         for (int j = len - i; j < 16; j++)
     800007f2:	49c1                	li	s3,16
             printf("%02x ", p[i + j]);
-    800007f4:	00001a97          	auipc	s5,0x1
-    800007f8:	b9ca8a93          	addi	s5,s5,-1124 # 80001390 <_trampoline+0x390>
+    800007f4:	00002a97          	auipc	s5,0x2
+    800007f8:	ba4a8a93          	addi	s5,s5,-1116 # 80002398 <_trampoline+0x398>
     800007fc:	a051                	j	80000880 <hexdump+0x116>
             printf("%c", (c >= 32 && c <= 126) ? c : '.');
     800007fe:	855a                	mv	a0,s6
@@ -1096,13 +1096,13 @@ void hexdump(void *addr, int len)
     8000084a:	47bd                	li	a5,15
     8000084c:	0697de63          	bge	a5,s1,800008c8 <hexdump+0x15e>
         printf(" |");
-    80000850:	00001517          	auipc	a0,0x1
-    80000854:	b5050513          	addi	a0,a0,-1200 # 800013a0 <_trampoline+0x3a0>
+    80000850:	00002517          	auipc	a0,0x2
+    80000854:	b5850513          	addi	a0,a0,-1192 # 800023a8 <_trampoline+0x3a8>
     80000858:	00000097          	auipc	ra,0x0
     8000085c:	e78080e7          	jalr	-392(ra) # 800006d0 <printf>
         printf("|\n");
-    80000860:	00001517          	auipc	a0,0x1
-    80000864:	b5050513          	addi	a0,a0,-1200 # 800013b0 <_trampoline+0x3b0>
+    80000860:	00002517          	auipc	a0,0x2
+    80000864:	b5850513          	addi	a0,a0,-1192 # 800023b8 <_trampoline+0x3b8>
     80000868:	00000097          	auipc	ra,0x0
     8000086c:	e68080e7          	jalr	-408(ra) # 800006d0 <printf>
     for (int i = 0; i < len; i += 16)
@@ -1114,8 +1114,8 @@ void hexdump(void *addr, int len)
     8000087c:	fafc86e3          	beq	s9,a5,80000828 <hexdump+0xbe>
         printf("%p: ", (void *)(p + i));
     80000880:	85e2                	mv	a1,s8
-    80000882:	00001517          	auipc	a0,0x1
-    80000886:	b0650513          	addi	a0,a0,-1274 # 80001388 <_trampoline+0x388>
+    80000882:	00002517          	auipc	a0,0x2
+    80000886:	b0e50513          	addi	a0,a0,-1266 # 80002390 <_trampoline+0x390>
     8000088a:	00000097          	auipc	ra,0x0
     8000088e:	e46080e7          	jalr	-442(ra) # 800006d0 <printf>
         for (int j = 0; j < 16 && i + j < len; j++)
@@ -1146,8 +1146,8 @@ void hexdump(void *addr, int len)
     800008d2:	2485                	addiw	s1,s1,1
     800008d4:	ff349ae3          	bne	s1,s3,800008c8 <hexdump+0x15e>
         printf(" |");
-    800008d8:	00001517          	auipc	a0,0x1
-    800008dc:	ac850513          	addi	a0,a0,-1336 # 800013a0 <_trampoline+0x3a0>
+    800008d8:	00002517          	auipc	a0,0x2
+    800008dc:	ad050513          	addi	a0,a0,-1328 # 800023a8 <_trampoline+0x3a8>
     800008e0:	00000097          	auipc	ra,0x0
     800008e4:	df0080e7          	jalr	-528(ra) # 800006d0 <printf>
         for (int j = 0; j < 16 && i + j < len; j++)
@@ -1160,8 +1160,8 @@ void hexdump(void *addr, int len)
     800008fa:	84e2                	mv	s1,s8
     800008fc:	bf19                	j	80000812 <hexdump+0xa8>
         printf(" |");
-    800008fe:	00001517          	auipc	a0,0x1
-    80000902:	aa250513          	addi	a0,a0,-1374 # 800013a0 <_trampoline+0x3a0>
+    800008fe:	00002517          	auipc	a0,0x2
+    80000902:	aaa50513          	addi	a0,a0,-1366 # 800023a8 <_trampoline+0x3a8>
     80000906:	00000097          	auipc	ra,0x0
     8000090a:	dca080e7          	jalr	-566(ra) # 800006d0 <printf>
         for (int j = 0; j < 16 && i + j < len; j++)
@@ -1186,8 +1186,8 @@ void consoleinit(void)
 
     // 清空控制台缓冲区
     console.r = console.w = console.e = 0;
-    80000920:	00009797          	auipc	a5,0x9
-    80000924:	0d078793          	addi	a5,a5,208 # 800099f0 <console>
+    80000920:	0000a797          	auipc	a5,0xa
+    80000924:	45078793          	addi	a5,a5,1104 # 8000ad70 <console>
     80000928:	1007a423          	sw	zero,264(a5)
     8000092c:	1007a223          	sw	zero,260(a5)
     80000930:	1007a023          	sw	zero,256(a5)
@@ -1226,8 +1226,8 @@ void consputc(int c)
 void console_flush(void)
 {
     for (uint i = 0; i < console.output_pos; i++)
-    80000958:	00009797          	auipc	a5,0x9
-    8000095c:	2a47a783          	lw	a5,676(a5) # 80009bfc <console+0x20c>
+    80000958:	0000a797          	auipc	a5,0xa
+    8000095c:	6247a783          	lw	a5,1572(a5) # 8000af7c <console+0x20c>
     80000960:	c7a9                	beqz	a5,800009aa <console_flush+0x52>
 {
     80000962:	1101                	addi	sp,sp,-32
@@ -1240,8 +1240,8 @@ void console_flush(void)
     8000096e:	4481                	li	s1,0
     {
         uartputc(console.output_buf[i]);
-    80000970:	00009917          	auipc	s2,0x9
-    80000974:	08090913          	addi	s2,s2,128 # 800099f0 <console>
+    80000970:	0000a917          	auipc	s2,0xa
+    80000974:	40090913          	addi	s2,s2,1024 # 8000ad70 <console>
     80000978:	009907b3          	add	a5,s2,s1
     8000097c:	10c7c503          	lbu	a0,268(a5)
     80000980:	00000097          	auipc	ra,0x0
@@ -1253,8 +1253,8 @@ void console_flush(void)
     80000992:	fee7e3e3          	bltu	a5,a4,80000978 <console_flush+0x20>
     }
     console.output_pos = 0; // 重置缓冲区位置
-    80000996:	00009797          	auipc	a5,0x9
-    8000099a:	2607a323          	sw	zero,614(a5) # 80009bfc <console+0x20c>
+    80000996:	0000a797          	auipc	a5,0xa
+    8000099a:	5e07a323          	sw	zero,1510(a5) # 8000af7c <console+0x20c>
 }
     8000099e:	60e2                	ld	ra,24(sp)
     800009a0:	6442                	ld	s0,16(sp)
@@ -1263,8 +1263,8 @@ void console_flush(void)
     800009a6:	6105                	addi	sp,sp,32
     800009a8:	8082                	ret
     console.output_pos = 0; // 重置缓冲区位置
-    800009aa:	00009797          	auipc	a5,0x9
-    800009ae:	2407a923          	sw	zero,594(a5) # 80009bfc <console+0x20c>
+    800009aa:	0000a797          	auipc	a5,0xa
+    800009ae:	5c07a923          	sw	zero,1490(a5) # 8000af7c <console+0x20c>
     800009b2:	8082                	ret
 
 00000000800009b4 <sync_flush>:
@@ -1287,16 +1287,16 @@ void console_flush(void)
 void consoleputc(int c)
 {
     if (console.output_pos < CONSOLE_BUF_SIZE - 1)
-    800009cc:	00009797          	auipc	a5,0x9
-    800009d0:	2307a783          	lw	a5,560(a5) # 80009bfc <console+0x20c>
+    800009cc:	0000a797          	auipc	a5,0xa
+    800009d0:	5b07a783          	lw	a5,1456(a5) # 8000af7c <console+0x20c>
     800009d4:	0fe00713          	li	a4,254
     800009d8:	02f76963          	bltu	a4,a5,80000a0a <consoleputc+0x3e>
     {
         console.output_buf[console.output_pos++] = c;
     800009dc:	0017869b          	addiw	a3,a5,1
     800009e0:	0006861b          	sext.w	a2,a3
-    800009e4:	00009717          	auipc	a4,0x9
-    800009e8:	00c70713          	addi	a4,a4,12 # 800099f0 <console>
+    800009e4:	0000a717          	auipc	a4,0xa
+    800009e8:	38c70713          	addi	a4,a4,908 # 8000ad70 <console>
     800009ec:	20d72623          	sw	a3,524(a4)
     800009f0:	1782                	slli	a5,a5,0x20
     800009f2:	9381                	srli	a5,a5,0x20
@@ -1346,8 +1346,8 @@ void console_puts(const char *s)
     {
         // 直接写入缓冲区，然后一并刷出
         if (console.output_pos < CONSOLE_BUF_SIZE - 1)
-    80000a3a:	00009917          	auipc	s2,0x9
-    80000a3e:	fb690913          	addi	s2,s2,-74 # 800099f0 <console>
+    80000a3a:	0000a917          	auipc	s2,0xa
+    80000a3e:	33690913          	addi	s2,s2,822 # 8000ad70 <console>
     80000a42:	0fe00993          	li	s3,254
     80000a46:	a025                	j	80000a6e <console_puts+0x4a>
         {
@@ -1412,8 +1412,8 @@ void console_write_buf(const char *data, int len)
     80000aac:	00b50a33          	add	s4,a0,a1
     {
         if (console.output_pos < CONSOLE_BUF_SIZE - 1)
-    80000ab0:	00009917          	auipc	s2,0x9
-    80000ab4:	f4090913          	addi	s2,s2,-192 # 800099f0 <console>
+    80000ab0:	0000a917          	auipc	s2,0xa
+    80000ab4:	2c090913          	addi	s2,s2,704 # 8000ad70 <console>
     80000ab8:	0fe00993          	li	s3,254
     80000abc:	a01d                	j	80000ae2 <console_write_buf+0x4c>
         {
@@ -1470,8 +1470,8 @@ void console_clear(void)
     80000b12:	0800                	addi	s0,sp,16
     // 发送 ANSI 清屏序列
     console_puts("\033[2J\033[H"); // 清屏并将光标移动到左上角
-    80000b14:	00001517          	auipc	a0,0x1
-    80000b18:	8a450513          	addi	a0,a0,-1884 # 800013b8 <_trampoline+0x3b8>
+    80000b14:	00002517          	auipc	a0,0x2
+    80000b18:	8ac50513          	addi	a0,a0,-1876 # 800023c0 <_trampoline+0x3c0>
     80000b1c:	00000097          	auipc	ra,0x0
     80000b20:	f08080e7          	jalr	-248(ra) # 80000a24 <console_puts>
 }
@@ -1633,8 +1633,8 @@ void console_reset_color(void)
     80000c44:	e022                	sd	s0,0(sp)
     80000c46:	0800                	addi	s0,sp,16
     console_puts("\033[0m");
-    80000c48:	00000517          	auipc	a0,0x0
-    80000c4c:	77850513          	addi	a0,a0,1912 # 800013c0 <_trampoline+0x3c0>
+    80000c48:	00001517          	auipc	a0,0x1
+    80000c4c:	78050513          	addi	a0,a0,1920 # 800023c8 <_trampoline+0x3c8>
     80000c50:	00000097          	auipc	ra,0x0
     80000c54:	dd4080e7          	jalr	-556(ra) # 80000a24 <console_puts>
 }
@@ -1670,8 +1670,8 @@ int consolewrite(int user_src, uint64 src, int n)
         {
             char c = ((char *)src)[i];
             if (console.output_pos < CONSOLE_BUF_SIZE - 1)
-    80000c80:	00009917          	auipc	s2,0x9
-    80000c84:	d7090913          	addi	s2,s2,-656 # 800099f0 <console>
+    80000c80:	0000a917          	auipc	s2,0xa
+    80000c84:	0f090913          	addi	s2,s2,240 # 8000ad70 <console>
     80000c88:	0fe00993          	li	s3,254
     80000c8c:	a00d                	j	80000cae <consolewrite+0x4e>
             {
@@ -1737,4 +1737,806 @@ int consoleread(int user_dst, uint64 dst, int n)
     80000cee:	6422                	ld	s0,8(sp)
     80000cf0:	0141                	addi	sp,sp,16
     80000cf2:	8082                	ret
+
+0000000080000cf4 <mark_block_allocated>:
+        pages[start_pfn + i].order = 0;
+    }
+}
+
+void mark_block_allocated(void *page, int order) // 标记页面为已分配 操作对应的 page 数组
+{
+    80000cf4:	1141                	addi	sp,sp,-16
+    80000cf6:	e422                	sd	s0,8(sp)
+    80000cf8:	0800                	addi	s0,sp,16
+    //     panic("mark_block_allocated: page is not block head !");
+    // }
+    // 新分配的块可能不是块头
+
+    uint64 start_pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    uint64 count = 1UL << order;
+    80000cfa:	4885                	li	a7,1
+    80000cfc:	00b898b3          	sll	a7,a7,a1
+    uint64 start_pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    80000d00:	0000a797          	auipc	a5,0xa
+    80000d04:	3407b783          	ld	a5,832(a5) # 8000b040 <buddy+0xc0>
+    80000d08:	40f50833          	sub	a6,a0,a5
+    80000d0c:	00c85813          	srli	a6,a6,0xc
+        pages[start_pfn + i].flags &= ~PAGE_FREE; // 清除空闲标志
+
+        if (i == 0)
+        {
+            // 只有第一个页面是块头
+            pages[start_pfn].order = order;
+    80000d10:	080e                	slli	a6,a6,0x3
+    80000d12:	8742                	mv	a4,a6
+    for (uint64 i = 0; i < count; i++)
+    80000d14:	4681                	li	a3,0
+        pages[start_pfn + i].flags &= ~PAGE_FREE; // 清除空闲标志
+    80000d16:	0000a517          	auipc	a0,0xa
+    80000d1a:	26a50513          	addi	a0,a0,618 # 8000af80 <buddy>
+    80000d1e:	a831                	j	80000d3a <mark_block_allocated+0x46>
+            pages[start_pfn].order = order;
+    80000d20:	717c                	ld	a5,224(a0)
+    80000d22:	97c2                	add	a5,a5,a6
+    80000d24:	c38c                	sw	a1,0(a5)
+            pages[start_pfn].flags |= PAGE_HEAD;
+    80000d26:	717c                	ld	a5,224(a0)
+    80000d28:	97c2                	add	a5,a5,a6
+    80000d2a:	43d0                	lw	a2,4(a5)
+    80000d2c:	00266613          	ori	a2,a2,2
+    80000d30:	c3d0                	sw	a2,4(a5)
+    for (uint64 i = 0; i < count; i++)
+    80000d32:	0685                	addi	a3,a3,1
+    80000d34:	0721                	addi	a4,a4,8
+    80000d36:	02d88263          	beq	a7,a3,80000d5a <mark_block_allocated+0x66>
+        pages[start_pfn + i].flags &= ~PAGE_FREE; // 清除空闲标志
+    80000d3a:	717c                	ld	a5,224(a0)
+    80000d3c:	97ba                	add	a5,a5,a4
+    80000d3e:	43d0                	lw	a2,4(a5)
+    80000d40:	9a79                	andi	a2,a2,-2
+    80000d42:	c3d0                	sw	a2,4(a5)
+        if (i == 0)
+    80000d44:	def1                	beqz	a3,80000d20 <mark_block_allocated+0x2c>
+        }
+        else
+        {
+            // 其他页面不是块头
+            pages[start_pfn + i].order = 0;
+    80000d46:	717c                	ld	a5,224(a0)
+    80000d48:	97ba                	add	a5,a5,a4
+    80000d4a:	0007a023          	sw	zero,0(a5)
+            pages[start_pfn + i].flags &= ~PAGE_HEAD;
+    80000d4e:	717c                	ld	a5,224(a0)
+    80000d50:	97ba                	add	a5,a5,a4
+    80000d52:	43d0                	lw	a2,4(a5)
+    80000d54:	9a75                	andi	a2,a2,-3
+    80000d56:	c3d0                	sw	a2,4(a5)
+    80000d58:	bfe9                	j	80000d32 <mark_block_allocated+0x3e>
+        }
+    }
+}
+    80000d5a:	6422                	ld	s0,8(sp)
+    80000d5c:	0141                	addi	sp,sp,16
+    80000d5e:	8082                	ret
+
+0000000080000d60 <mark_block_free>:
+
+void mark_block_free(void *page, int order) // 标记页面为空闲 传入的page 必须是块头的page 地址
+{
+    80000d60:	1141                	addi	sp,sp,-16
+    80000d62:	e422                	sd	s0,8(sp)
+    80000d64:	0800                	addi	s0,sp,16
+    // if (is_block_head(page) == 0)
+    // {
+    //     panic("mark_block_free: page is not block head !");
+    // }
+    uint64 start_pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    uint64 count = 1UL << order;
+    80000d66:	4885                	li	a7,1
+    80000d68:	00b898b3          	sll	a7,a7,a1
+    uint64 start_pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    80000d6c:	0000a797          	auipc	a5,0xa
+    80000d70:	2d47b783          	ld	a5,724(a5) # 8000b040 <buddy+0xc0>
+    80000d74:	40f50833          	sub	a6,a0,a5
+    80000d78:	00c85813          	srli	a6,a6,0xc
+        pages[start_pfn + i].flags |= PAGE_FREE; // 设置空闲标志
+
+        if (i == 0)
+        {
+            // 只有第一个页面是块头
+            pages[start_pfn].order = order;
+    80000d7c:	080e                	slli	a6,a6,0x3
+    80000d7e:	8742                	mv	a4,a6
+    for (uint64 i = 0; i < count; i++)
+    80000d80:	4681                	li	a3,0
+        pages[start_pfn + i].flags |= PAGE_FREE; // 设置空闲标志
+    80000d82:	0000a517          	auipc	a0,0xa
+    80000d86:	1fe50513          	addi	a0,a0,510 # 8000af80 <buddy>
+    80000d8a:	a831                	j	80000da6 <mark_block_free+0x46>
+            pages[start_pfn].order = order;
+    80000d8c:	717c                	ld	a5,224(a0)
+    80000d8e:	97c2                	add	a5,a5,a6
+    80000d90:	c38c                	sw	a1,0(a5)
+            pages[start_pfn].flags |= PAGE_HEAD;
+    80000d92:	717c                	ld	a5,224(a0)
+    80000d94:	97c2                	add	a5,a5,a6
+    80000d96:	43d0                	lw	a2,4(a5)
+    80000d98:	00266613          	ori	a2,a2,2
+    80000d9c:	c3d0                	sw	a2,4(a5)
+    for (uint64 i = 0; i < count; i++)
+    80000d9e:	0685                	addi	a3,a3,1
+    80000da0:	0721                	addi	a4,a4,8
+    80000da2:	02d88363          	beq	a7,a3,80000dc8 <mark_block_free+0x68>
+        pages[start_pfn + i].flags |= PAGE_FREE; // 设置空闲标志
+    80000da6:	717c                	ld	a5,224(a0)
+    80000da8:	97ba                	add	a5,a5,a4
+    80000daa:	43d0                	lw	a2,4(a5)
+    80000dac:	00166613          	ori	a2,a2,1
+    80000db0:	c3d0                	sw	a2,4(a5)
+        if (i == 0)
+    80000db2:	dee9                	beqz	a3,80000d8c <mark_block_free+0x2c>
+        }
+        else
+        {
+            // 其他页面不是块头
+            pages[start_pfn + i].order = 0;
+    80000db4:	717c                	ld	a5,224(a0)
+    80000db6:	97ba                	add	a5,a5,a4
+    80000db8:	0007a023          	sw	zero,0(a5)
+            pages[start_pfn + i].flags &= ~PAGE_HEAD;
+    80000dbc:	717c                	ld	a5,224(a0)
+    80000dbe:	97ba                	add	a5,a5,a4
+    80000dc0:	43d0                	lw	a2,4(a5)
+    80000dc2:	9a75                	andi	a2,a2,-3
+    80000dc4:	c3d0                	sw	a2,4(a5)
+    80000dc6:	bfe1                	j	80000d9e <mark_block_free+0x3e>
+        }
+    }
+}
+    80000dc8:	6422                	ld	s0,8(sp)
+    80000dca:	0141                	addi	sp,sp,16
+    80000dcc:	8082                	ret
+
+0000000080000dce <list_add>:
+
+void list_add(struct free_block *list, struct free_block *block) // 将块添加到空闲链表
+{
+    80000dce:	1141                	addi	sp,sp,-16
+    80000dd0:	e422                	sd	s0,8(sp)
+    80000dd2:	0800                	addi	s0,sp,16
+    block->next = list->next;
+    80000dd4:	611c                	ld	a5,0(a0)
+    80000dd6:	e19c                	sd	a5,0(a1)
+    block->prev = list;
+    80000dd8:	e588                	sd	a0,8(a1)
+    list->next->prev = block;
+    80000dda:	611c                	ld	a5,0(a0)
+    80000ddc:	e78c                	sd	a1,8(a5)
+    list->next = block;
+    80000dde:	e10c                	sd	a1,0(a0)
+}
+    80000de0:	6422                	ld	s0,8(sp)
+    80000de2:	0141                	addi	sp,sp,16
+    80000de4:	8082                	ret
+
+0000000080000de6 <list_remove>:
+void list_remove(struct free_block *block) // 从链表中移除块
+{
+    80000de6:	1141                	addi	sp,sp,-16
+    80000de8:	e422                	sd	s0,8(sp)
+    80000dea:	0800                	addi	s0,sp,16
+    block->prev->next = block->next;
+    80000dec:	6518                	ld	a4,8(a0)
+    80000dee:	611c                	ld	a5,0(a0)
+    80000df0:	e31c                	sd	a5,0(a4)
+    block->next->prev = block->prev;
+    80000df2:	6518                	ld	a4,8(a0)
+    80000df4:	e798                	sd	a4,8(a5)
+    // 只是断开链表连接，不涉及内存大小
+}
+    80000df6:	6422                	ld	s0,8(sp)
+    80000df8:	0141                	addi	sp,sp,16
+    80000dfa:	8082                	ret
+
+0000000080000dfc <alloc_pages>:
+{
+    80000dfc:	7139                	addi	sp,sp,-64
+    80000dfe:	fc06                	sd	ra,56(sp)
+    80000e00:	f822                	sd	s0,48(sp)
+    80000e02:	f04a                	sd	s2,32(sp)
+    80000e04:	e456                	sd	s5,8(sp)
+    80000e06:	0080                	addi	s0,sp,64
+    if (order < 0 || order > MAX_ORDER)
+    80000e08:	8aaa                	mv	s5,a0
+    80000e0a:	47a9                	li	a5,10
+    80000e0c:	04a7ed63          	bltu	a5,a0,80000e66 <alloc_pages+0x6a>
+    80000e10:	f426                	sd	s1,40(sp)
+    acquire(&buddy.lock);
+    80000e12:	0000a517          	auipc	a0,0xa
+    80000e16:	23650513          	addi	a0,a0,566 # 8000b048 <buddy+0xc8>
+    80000e1a:	00000097          	auipc	ra,0x0
+    80000e1e:	45e080e7          	jalr	1118(ra) # 80001278 <acquire>
+    while (current_order <= MAX_ORDER) // 当前 order 对应的块不够大就继续往上查
+    80000e22:	004a9713          	slli	a4,s5,0x4
+    80000e26:	0000a797          	auipc	a5,0xa
+    80000e2a:	15a78793          	addi	a5,a5,346 # 8000af80 <buddy>
+    80000e2e:	97ba                	add	a5,a5,a4
+    int current_order = order;
+    80000e30:	84d6                	mv	s1,s5
+    while (current_order <= MAX_ORDER) // 当前 order 对应的块不够大就继续往上查
+    80000e32:	472d                	li	a4,11
+    }
+}
+
+static inline int list_empty(struct free_block *list)
+{
+    return list->next == list;
+    80000e34:	0007b903          	ld	s2,0(a5)
+        if (!list_empty(&buddy.free_lists[current_order]))
+    80000e38:	04f91c63          	bne	s2,a5,80000e90 <alloc_pages+0x94>
+        current_order++;
+    80000e3c:	2485                	addiw	s1,s1,1
+    while (current_order <= MAX_ORDER) // 当前 order 对应的块不够大就继续往上查
+    80000e3e:	07c1                	addi	a5,a5,16
+    80000e40:	fee49ae3          	bne	s1,a4,80000e34 <alloc_pages+0x38>
+    80000e44:	74a2                	ld	s1,40(sp)
+    release(&buddy.lock);
+    80000e46:	0000a517          	auipc	a0,0xa
+    80000e4a:	20250513          	addi	a0,a0,514 # 8000b048 <buddy+0xc8>
+    80000e4e:	00000097          	auipc	ra,0x0
+    80000e52:	44c080e7          	jalr	1100(ra) # 8000129a <release>
+    return 0; // 内存不足
+    80000e56:	4901                	li	s2,0
+}
+    80000e58:	854a                	mv	a0,s2
+    80000e5a:	70e2                	ld	ra,56(sp)
+    80000e5c:	7442                	ld	s0,48(sp)
+    80000e5e:	7902                	ld	s2,32(sp)
+    80000e60:	6aa2                	ld	s5,8(sp)
+    80000e62:	6121                	addi	sp,sp,64
+    80000e64:	8082                	ret
+        panic("alloc_pages: invalid order");
+    80000e66:	00001517          	auipc	a0,0x1
+    80000e6a:	56a50513          	addi	a0,a0,1386 # 800023d0 <_trampoline+0x3d0>
+    80000e6e:	fffff097          	auipc	ra,0xfffff
+    80000e72:	620080e7          	jalr	1568(ra) # 8000048e <panic>
+    acquire(&buddy.lock);
+    80000e76:	0000a517          	auipc	a0,0xa
+    80000e7a:	1d250513          	addi	a0,a0,466 # 8000b048 <buddy+0xc8>
+    80000e7e:	00000097          	auipc	ra,0x0
+    80000e82:	3fa080e7          	jalr	1018(ra) # 80001278 <acquire>
+    while (current_order <= MAX_ORDER) // 当前 order 对应的块不够大就继续往上查
+    80000e86:	47a9                	li	a5,10
+    80000e88:	fb57cfe3          	blt	a5,s5,80000e46 <alloc_pages+0x4a>
+    80000e8c:	f426                	sd	s1,40(sp)
+    80000e8e:	bf51                	j	80000e22 <alloc_pages+0x26>
+            list_remove(block);
+    80000e90:	854a                	mv	a0,s2
+    80000e92:	00000097          	auipc	ra,0x0
+    80000e96:	f54080e7          	jalr	-172(ra) # 80000de6 <list_remove>
+            while (current_order > order)
+    80000e9a:	049ad463          	bge	s5,s1,80000ee2 <alloc_pages+0xe6>
+    80000e9e:	ec4e                	sd	s3,24(sp)
+    80000ea0:	e852                	sd	s4,16(sp)
+    80000ea2:	e05a                	sd	s6,0(sp)
+    80000ea4:	fff48793          	addi	a5,s1,-1
+    80000ea8:	0792                	slli	a5,a5,0x4
+    80000eaa:	0000aa17          	auipc	s4,0xa
+    80000eae:	0d6a0a13          	addi	s4,s4,214 # 8000af80 <buddy>
+    80000eb2:	9a3e                	add	s4,s4,a5
+                void *buddy_page = (char *)page + (1UL << current_order) * PGSIZE;
+    80000eb4:	6b05                	lui	s6,0x1
+                current_order--;
+    80000eb6:	34fd                	addiw	s1,s1,-1
+                void *buddy_page = (char *)page + (1UL << current_order) * PGSIZE;
+    80000eb8:	009b19b3          	sll	s3,s6,s1
+    80000ebc:	99ca                	add	s3,s3,s2
+                list_add(&buddy.free_lists[current_order], (struct free_block *)buddy_page);
+    80000ebe:	85ce                	mv	a1,s3
+    80000ec0:	8552                	mv	a0,s4
+    80000ec2:	00000097          	auipc	ra,0x0
+    80000ec6:	f0c080e7          	jalr	-244(ra) # 80000dce <list_add>
+                mark_block_free(buddy_page, current_order);
+    80000eca:	85a6                	mv	a1,s1
+    80000ecc:	854e                	mv	a0,s3
+    80000ece:	00000097          	auipc	ra,0x0
+    80000ed2:	e92080e7          	jalr	-366(ra) # 80000d60 <mark_block_free>
+            while (current_order > order)
+    80000ed6:	1a41                	addi	s4,s4,-16
+    80000ed8:	fc9a9fe3          	bne	s5,s1,80000eb6 <alloc_pages+0xba>
+    80000edc:	69e2                	ld	s3,24(sp)
+    80000ede:	6a42                	ld	s4,16(sp)
+    80000ee0:	6b02                	ld	s6,0(sp)
+            mark_block_allocated(page, order);
+    80000ee2:	85d6                	mv	a1,s5
+    80000ee4:	854a                	mv	a0,s2
+    80000ee6:	00000097          	auipc	ra,0x0
+    80000eea:	e0e080e7          	jalr	-498(ra) # 80000cf4 <mark_block_allocated>
+            buddy.free_pages -= (1UL << order);
+    80000eee:	0000a697          	auipc	a3,0xa
+    80000ef2:	09268693          	addi	a3,a3,146 # 8000af80 <buddy>
+    80000ef6:	4705                	li	a4,1
+    80000ef8:	01571733          	sll	a4,a4,s5
+    80000efc:	7edc                	ld	a5,184(a3)
+    80000efe:	8f99                	sub	a5,a5,a4
+    80000f00:	fedc                	sd	a5,184(a3)
+            release(&buddy.lock);
+    80000f02:	0000a517          	auipc	a0,0xa
+    80000f06:	14650513          	addi	a0,a0,326 # 8000b048 <buddy+0xc8>
+    80000f0a:	00000097          	auipc	ra,0x0
+    80000f0e:	390080e7          	jalr	912(ra) # 8000129a <release>
+            return page;
+    80000f12:	74a2                	ld	s1,40(sp)
+    80000f14:	b791                	j	80000e58 <alloc_pages+0x5c>
+
+0000000080000f16 <free_pages>:
+    if (!page || order < 0 || order > MAX_ORDER)
+    80000f16:	1e050163          	beqz	a0,800010f8 <free_pages+0x1e2>
+{
+    80000f1a:	711d                	addi	sp,sp,-96
+    80000f1c:	ec86                	sd	ra,88(sp)
+    80000f1e:	e8a2                	sd	s0,80(sp)
+    80000f20:	fc4e                	sd	s3,56(sp)
+    80000f22:	f852                	sd	s4,48(sp)
+    80000f24:	1080                	addi	s0,sp,96
+    80000f26:	8a2a                	mv	s4,a0
+    80000f28:	89ae                	mv	s3,a1
+    if (!page || order < 0 || order > MAX_ORDER)
+    80000f2a:	0005879b          	sext.w	a5,a1
+    80000f2e:	4729                	li	a4,10
+    80000f30:	18f76663          	bltu	a4,a5,800010bc <free_pages+0x1a6>
+    80000f34:	e4a6                	sd	s1,72(sp)
+    acquire(&buddy.lock);
+    80000f36:	0000a497          	auipc	s1,0xa
+    80000f3a:	04a48493          	addi	s1,s1,74 # 8000af80 <buddy>
+    80000f3e:	0000a517          	auipc	a0,0xa
+    80000f42:	10a50513          	addi	a0,a0,266 # 8000b048 <buddy+0xc8>
+    80000f46:	00000097          	auipc	ra,0x0
+    80000f4a:	332080e7          	jalr	818(ra) # 80001278 <acquire>
+}
+
+static inline int is_block_head(void *page)
+{
+    // 检查是否为块头
+    return pages[((uint64)page - (uint64)buddy.memory_start) / PGSIZE].flags & PAGE_HEAD;
+    80000f4e:	60fc                	ld	a5,192(s1)
+    80000f50:	40fa07b3          	sub	a5,s4,a5
+    80000f54:	83b1                	srli	a5,a5,0xc
+    80000f56:	70f8                	ld	a4,224(s1)
+    80000f58:	078e                	slli	a5,a5,0x3
+    80000f5a:	97ba                	add	a5,a5,a4
+    if (is_block_head(page) == 0)
+    80000f5c:	43dc                	lw	a5,4(a5)
+    80000f5e:	8b89                	andi	a5,a5,2
+    80000f60:	c7a9                	beqz	a5,80000faa <free_pages+0x94>
+    mark_block_free(page, order);
+    80000f62:	85ce                	mv	a1,s3
+    80000f64:	8552                	mv	a0,s4
+    80000f66:	00000097          	auipc	ra,0x0
+    80000f6a:	dfa080e7          	jalr	-518(ra) # 80000d60 <mark_block_free>
+    buddy.free_pages += (1UL << order);
+    80000f6e:	0000a697          	auipc	a3,0xa
+    80000f72:	01268693          	addi	a3,a3,18 # 8000af80 <buddy>
+    80000f76:	4705                	li	a4,1
+    80000f78:	01371733          	sll	a4,a4,s3
+    80000f7c:	7edc                	ld	a5,184(a3)
+    80000f7e:	97ba                	add	a5,a5,a4
+    80000f80:	fedc                	sd	a5,184(a3)
+    while (order < MAX_ORDER)
+    80000f82:	47a5                	li	a5,9
+    80000f84:	1137c863          	blt	a5,s3,80001094 <free_pages+0x17e>
+    80000f88:	e0ca                	sd	s2,64(sp)
+    80000f8a:	f456                	sd	s5,40(sp)
+    80000f8c:	f05a                	sd	s6,32(sp)
+    80000f8e:	ec5e                	sd	s7,24(sp)
+    80000f90:	e862                	sd	s8,16(sp)
+    80000f92:	e466                	sd	s9,8(sp)
+    80000f94:	e06a                	sd	s10,0(sp)
+    return pages[((uint64)page - (uint64)buddy.memory_start) / PGSIZE].flags & PAGE_HEAD;
+    80000f96:	84b6                	mv	s1,a3
+        panic("get_buddy_block: page is not block head !");
+    80000f98:	00001c97          	auipc	s9,0x1
+    80000f9c:	480c8c93          	addi	s9,s9,1152 # 80002418 <_trampoline+0x418>
+    uint64 buddy_pfn = pfn ^ (1UL << order);
+    80000fa0:	4b05                	li	s6,1
+           ((uint64)page & (PGSIZE - 1)) == 0; // 页面对齐检查
+    80000fa2:	6c05                	lui	s8,0x1
+    80000fa4:	1c7d                	addi	s8,s8,-1 # fff <_entry-0x7ffff001>
+    while (order < MAX_ORDER)
+    80000fa6:	4ba9                	li	s7,10
+    80000fa8:	a8bd                	j	80001026 <free_pages+0x110>
+        panic("free_pages: page is not block head !");
+    80000faa:	00001517          	auipc	a0,0x1
+    80000fae:	44650513          	addi	a0,a0,1094 # 800023f0 <_trampoline+0x3f0>
+    80000fb2:	fffff097          	auipc	ra,0xfffff
+    80000fb6:	4dc080e7          	jalr	1244(ra) # 8000048e <panic>
+    80000fba:	b765                	j	80000f62 <free_pages+0x4c>
+        panic("get_buddy_block: page is not block head !");
+    80000fbc:	8566                	mv	a0,s9
+    80000fbe:	fffff097          	auipc	ra,0xfffff
+    80000fc2:	4d0080e7          	jalr	1232(ra) # 8000048e <panic>
+    80000fc6:	a89d                	j	8000103c <free_pages+0x126>
+    struct page_info *info = &pages[((uint64)page - (uint64)buddy.memory_start) / PGSIZE];
+    80000fc8:	078e                	slli	a5,a5,0x3
+    80000fca:	70f8                	ld	a4,224(s1)
+    80000fcc:	97ba                	add	a5,a5,a4
+    return (info->flags & PAGE_FREE) && (info->order == order);
+    80000fce:	43d8                	lw	a4,4(a5)
+    80000fd0:	8b05                	andi	a4,a4,1
+    80000fd2:	10070363          	beqz	a4,800010d8 <free_pages+0x1c2>
+        if (!is_valid_page(buddy_page) || !is_page_free(buddy_page, order))
+    80000fd6:	439c                	lw	a5,0(a5)
+    80000fd8:	11379863          	bne	a5,s3,800010e8 <free_pages+0x1d2>
+        list_remove((struct free_block *)buddy_page);
+    80000fdc:	854a                	mv	a0,s2
+    80000fde:	00000097          	auipc	ra,0x0
+    80000fe2:	e08080e7          	jalr	-504(ra) # 80000de6 <list_remove>
+    uint64 start_pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    80000fe6:	60f8                	ld	a4,192(s1)
+    80000fe8:	40e90733          	sub	a4,s2,a4
+    80000fec:	8331                	srli	a4,a4,0xc
+    for (uint64 i = 0; i < count; i++)
+    80000fee:	00371793          	slli	a5,a4,0x3
+    80000ff2:	00ed06b3          	add	a3,s10,a4
+    80000ff6:	068e                	slli	a3,a3,0x3
+        pages[start_pfn + i].flags = 0;
+    80000ff8:	70f8                	ld	a4,224(s1)
+    80000ffa:	973e                	add	a4,a4,a5
+    80000ffc:	00072223          	sw	zero,4(a4)
+        pages[start_pfn + i].order = 0;
+    80001000:	70f8                	ld	a4,224(s1)
+    80001002:	973e                	add	a4,a4,a5
+    80001004:	00072023          	sw	zero,0(a4)
+    for (uint64 i = 0; i < count; i++)
+    80001008:	07a1                	addi	a5,a5,8
+    8000100a:	fed797e3          	bne	a5,a3,80000ff8 <free_pages+0xe2>
+    return ((uint64)page1 < (uint64)page2) ? page1 : page2;
+    8000100e:	012ae363          	bltu	s5,s2,80001014 <free_pages+0xfe>
+    80001012:	8a4a                	mv	s4,s2
+        order++;
+    80001014:	2985                	addiw	s3,s3,1
+        mark_block_free(page, order);
+    80001016:	85ce                	mv	a1,s3
+    80001018:	8552                	mv	a0,s4
+    8000101a:	00000097          	auipc	ra,0x0
+    8000101e:	d46080e7          	jalr	-698(ra) # 80000d60 <mark_block_free>
+    while (order < MAX_ORDER)
+    80001022:	05798a63          	beq	s3,s7,80001076 <free_pages+0x160>
+    return pages[((uint64)page - (uint64)buddy.memory_start) / PGSIZE].flags & PAGE_HEAD;
+    80001026:	8ad2                	mv	s5,s4
+    80001028:	60fc                	ld	a5,192(s1)
+    8000102a:	40fa07b3          	sub	a5,s4,a5
+    8000102e:	83b1                	srli	a5,a5,0xc
+    80001030:	70f8                	ld	a4,224(s1)
+    80001032:	078e                	slli	a5,a5,0x3
+    80001034:	97ba                	add	a5,a5,a4
+    if (is_block_head(page) == 0)
+    80001036:	43dc                	lw	a5,4(a5)
+    80001038:	8b89                	andi	a5,a5,2
+    8000103a:	d3c9                	beqz	a5,80000fbc <free_pages+0xa6>
+    uint64 pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    8000103c:	60f8                	ld	a4,192(s1)
+    uint64 buddy_pfn = pfn ^ (1UL << order);
+    8000103e:	013b1d33          	sll	s10,s6,s3
+    uint64 pfn = ((uint64)page - (uint64)buddy.memory_start) / PGSIZE;
+    80001042:	40ea87b3          	sub	a5,s5,a4
+    80001046:	83b1                	srli	a5,a5,0xc
+    uint64 buddy_pfn = pfn ^ (1UL << order);
+    80001048:	01a7c7b3          	xor	a5,a5,s10
+    return (void *)((uint64)buddy.memory_start + buddy_pfn * PGSIZE);
+    8000104c:	00c79913          	slli	s2,a5,0xc
+    80001050:	993a                	add	s2,s2,a4
+           page < (void *)((uint64)buddy.memory_start + buddy.total_pages * PGSIZE) &&
+    80001052:	02e96a63          	bltu	s2,a4,80001086 <free_pages+0x170>
+    80001056:	78d4                	ld	a3,176(s1)
+    80001058:	06b2                	slli	a3,a3,0xc
+    8000105a:	9736                	add	a4,a4,a3
+    return page >= buddy.memory_start &&
+    8000105c:	06e97663          	bgeu	s2,a4,800010c8 <free_pages+0x1b2>
+           ((uint64)page & (PGSIZE - 1)) == 0; // 页面对齐检查
+    80001060:	01897733          	and	a4,s2,s8
+        if (!is_valid_page(buddy_page) || !is_page_free(buddy_page, order))
+    80001064:	d335                	beqz	a4,80000fc8 <free_pages+0xb2>
+    80001066:	6906                	ld	s2,64(sp)
+    80001068:	7aa2                	ld	s5,40(sp)
+    8000106a:	7b02                	ld	s6,32(sp)
+    8000106c:	6be2                	ld	s7,24(sp)
+    8000106e:	6c42                	ld	s8,16(sp)
+    80001070:	6ca2                	ld	s9,8(sp)
+    80001072:	6d02                	ld	s10,0(sp)
+    80001074:	a005                	j	80001094 <free_pages+0x17e>
+    80001076:	6906                	ld	s2,64(sp)
+    80001078:	7aa2                	ld	s5,40(sp)
+    8000107a:	7b02                	ld	s6,32(sp)
+    8000107c:	6be2                	ld	s7,24(sp)
+    8000107e:	6c42                	ld	s8,16(sp)
+    80001080:	6ca2                	ld	s9,8(sp)
+    80001082:	6d02                	ld	s10,0(sp)
+    80001084:	a801                	j	80001094 <free_pages+0x17e>
+    80001086:	6906                	ld	s2,64(sp)
+    80001088:	7aa2                	ld	s5,40(sp)
+    8000108a:	7b02                	ld	s6,32(sp)
+    8000108c:	6be2                	ld	s7,24(sp)
+    8000108e:	6c42                	ld	s8,16(sp)
+    80001090:	6ca2                	ld	s9,8(sp)
+    80001092:	6d02                	ld	s10,0(sp)
+    list_add(&buddy.free_lists[order], (struct free_block *)page);
+    80001094:	0992                	slli	s3,s3,0x4
+    80001096:	85d2                	mv	a1,s4
+    80001098:	0000a517          	auipc	a0,0xa
+    8000109c:	ee850513          	addi	a0,a0,-280 # 8000af80 <buddy>
+    800010a0:	954e                	add	a0,a0,s3
+    800010a2:	00000097          	auipc	ra,0x0
+    800010a6:	d2c080e7          	jalr	-724(ra) # 80000dce <list_add>
+    release(&buddy.lock);
+    800010aa:	0000a517          	auipc	a0,0xa
+    800010ae:	f9e50513          	addi	a0,a0,-98 # 8000b048 <buddy+0xc8>
+    800010b2:	00000097          	auipc	ra,0x0
+    800010b6:	1e8080e7          	jalr	488(ra) # 8000129a <release>
+    800010ba:	64a6                	ld	s1,72(sp)
+}
+    800010bc:	60e6                	ld	ra,88(sp)
+    800010be:	6446                	ld	s0,80(sp)
+    800010c0:	79e2                	ld	s3,56(sp)
+    800010c2:	7a42                	ld	s4,48(sp)
+    800010c4:	6125                	addi	sp,sp,96
+    800010c6:	8082                	ret
+    800010c8:	6906                	ld	s2,64(sp)
+    800010ca:	7aa2                	ld	s5,40(sp)
+    800010cc:	7b02                	ld	s6,32(sp)
+    800010ce:	6be2                	ld	s7,24(sp)
+    800010d0:	6c42                	ld	s8,16(sp)
+    800010d2:	6ca2                	ld	s9,8(sp)
+    800010d4:	6d02                	ld	s10,0(sp)
+    800010d6:	bf7d                	j	80001094 <free_pages+0x17e>
+    800010d8:	6906                	ld	s2,64(sp)
+    800010da:	7aa2                	ld	s5,40(sp)
+    800010dc:	7b02                	ld	s6,32(sp)
+    800010de:	6be2                	ld	s7,24(sp)
+    800010e0:	6c42                	ld	s8,16(sp)
+    800010e2:	6ca2                	ld	s9,8(sp)
+    800010e4:	6d02                	ld	s10,0(sp)
+    800010e6:	b77d                	j	80001094 <free_pages+0x17e>
+    800010e8:	6906                	ld	s2,64(sp)
+    800010ea:	7aa2                	ld	s5,40(sp)
+    800010ec:	7b02                	ld	s6,32(sp)
+    800010ee:	6be2                	ld	s7,24(sp)
+    800010f0:	6c42                	ld	s8,16(sp)
+    800010f2:	6ca2                	ld	s9,8(sp)
+    800010f4:	6d02                	ld	s10,0(sp)
+    800010f6:	bf79                	j	80001094 <free_pages+0x17e>
+    800010f8:	8082                	ret
+
+00000000800010fa <buddy_add_memory>:
+{
+    800010fa:	711d                	addi	sp,sp,-96
+    800010fc:	ec86                	sd	ra,88(sp)
+    800010fe:	e8a2                	sd	s0,80(sp)
+    80001100:	e4a6                	sd	s1,72(sp)
+    80001102:	1080                	addi	s0,sp,96
+    char *p = (char *)PGROUNDUP((uint64)start);
+    80001104:	6785                	lui	a5,0x1
+    80001106:	fff78713          	addi	a4,a5,-1 # fff <_entry-0x7ffff001>
+    8000110a:	953a                	add	a0,a0,a4
+    8000110c:	777d                	lui	a4,0xfffff
+    8000110e:	00e574b3          	and	s1,a0,a4
+    while (p + PGSIZE <= (char *)end)
+    80001112:	97a6                	add	a5,a5,s1
+    80001114:	0af5e363          	bltu	a1,a5,800011ba <buddy_add_memory+0xc0>
+    80001118:	e0ca                	sd	s2,64(sp)
+    8000111a:	fc4e                	sd	s3,56(sp)
+    8000111c:	f852                	sd	s4,48(sp)
+    8000111e:	f456                	sd	s5,40(sp)
+    80001120:	f05a                	sd	s6,32(sp)
+    80001122:	ec5e                	sd	s7,24(sp)
+    80001124:	e862                	sd	s8,16(sp)
+    80001126:	e466                	sd	s9,8(sp)
+    80001128:	89ae                	mv	s3,a1
+        uint64 pfn = ((uint64)p - (uint64)buddy.memory_start) / PGSIZE;
+    8000112a:	0000ab17          	auipc	s6,0xa
+    8000112e:	e56b0b13          	addi	s6,s6,-426 # 8000af80 <buddy>
+        int order = 0;
+    80001132:	4c01                	li	s8,0
+               (pfn & ((1UL << order) - 1)) == 0 && // 地址对齐检查
+    80001134:	5a7d                	li	s4,-1
+               p + ((1UL << (order + 1)) * PGSIZE) <= (char *)end)
+    80001136:	6905                	lui	s2,0x1
+               (pfn & ((1UL << order) - 1)) == 0 && // 地址对齐检查
+    80001138:	4aa9                	li	s5,10
+        buddy.free_pages += (1UL << order);
+    8000113a:	4b85                	li	s7,1
+    8000113c:	a081                	j	8000117c <buddy_add_memory+0x82>
+    8000113e:	8cba                	mv	s9,a4
+    80001140:	a011                	j	80001144 <buddy_add_memory+0x4a>
+    80001142:	8cba                	mv	s9,a4
+        mark_block_free(p, order);
+    80001144:	85e6                	mv	a1,s9
+    80001146:	8526                	mv	a0,s1
+    80001148:	00000097          	auipc	ra,0x0
+    8000114c:	c18080e7          	jalr	-1000(ra) # 80000d60 <mark_block_free>
+        list_add(&buddy.free_lists[order], (struct free_block *)p);
+    80001150:	004c9513          	slli	a0,s9,0x4
+    80001154:	85a6                	mv	a1,s1
+    80001156:	955a                	add	a0,a0,s6
+    80001158:	00000097          	auipc	ra,0x0
+    8000115c:	c76080e7          	jalr	-906(ra) # 80000dce <list_add>
+        buddy.free_pages += (1UL << order);
+    80001160:	019b9733          	sll	a4,s7,s9
+    80001164:	0b8b3783          	ld	a5,184(s6)
+    80001168:	97ba                	add	a5,a5,a4
+    8000116a:	0afb3c23          	sd	a5,184(s6)
+        p += (1UL << order) * PGSIZE;
+    8000116e:	01991cb3          	sll	s9,s2,s9
+    80001172:	94e6                	add	s1,s1,s9
+    while (p + PGSIZE <= (char *)end)
+    80001174:	012487b3          	add	a5,s1,s2
+    80001178:	02f9e963          	bltu	s3,a5,800011aa <buddy_add_memory+0xb0>
+        uint64 pfn = ((uint64)p - (uint64)buddy.memory_start) / PGSIZE;
+    8000117c:	0c0b3683          	ld	a3,192(s6)
+    80001180:	40d486b3          	sub	a3,s1,a3
+    80001184:	82b1                	srli	a3,a3,0xc
+        int order = 0;
+    80001186:	8762                	mv	a4,s8
+               (pfn & ((1UL << order) - 1)) == 0 && // 地址对齐检查
+    80001188:	00ea17b3          	sll	a5,s4,a4
+    8000118c:	fff7c793          	not	a5,a5
+    80001190:	8ff5                	and	a5,a5,a3
+        while (order < MAX_ORDER &&
+    80001192:	fbc5                	bnez	a5,80001142 <buddy_add_memory+0x48>
+               p + ((1UL << (order + 1)) * PGSIZE) <= (char *)end)
+    80001194:	00170c9b          	addiw	s9,a4,1 # fffffffffffff001 <end+0xffffffff7fff3f99>
+    80001198:	019917b3          	sll	a5,s2,s9
+    8000119c:	97a6                	add	a5,a5,s1
+               (pfn & ((1UL << order) - 1)) == 0 && // 地址对齐检查
+    8000119e:	faf9e0e3          	bltu	s3,a5,8000113e <buddy_add_memory+0x44>
+    800011a2:	fb5c81e3          	beq	s9,s5,80001144 <buddy_add_memory+0x4a>
+    800011a6:	8766                	mv	a4,s9
+    800011a8:	b7c5                	j	80001188 <buddy_add_memory+0x8e>
+    800011aa:	6906                	ld	s2,64(sp)
+    800011ac:	79e2                	ld	s3,56(sp)
+    800011ae:	7a42                	ld	s4,48(sp)
+    800011b0:	7aa2                	ld	s5,40(sp)
+    800011b2:	7b02                	ld	s6,32(sp)
+    800011b4:	6be2                	ld	s7,24(sp)
+    800011b6:	6c42                	ld	s8,16(sp)
+    800011b8:	6ca2                	ld	s9,8(sp)
+}
+    800011ba:	60e6                	ld	ra,88(sp)
+    800011bc:	6446                	ld	s0,80(sp)
+    800011be:	64a6                	ld	s1,72(sp)
+    800011c0:	6125                	addi	sp,sp,96
+    800011c2:	8082                	ret
+
+00000000800011c4 <pmm_init>:
+{
+    800011c4:	1101                	addi	sp,sp,-32
+    800011c6:	ec06                	sd	ra,24(sp)
+    800011c8:	e822                	sd	s0,16(sp)
+    800011ca:	e426                	sd	s1,8(sp)
+    800011cc:	1000                	addi	s0,sp,32
+    void *mem_start = (void *)PGROUNDUP((uint64)end);
+    800011ce:	6585                	lui	a1,0x1
+    800011d0:	15fd                	addi	a1,a1,-1 # fff <_entry-0x7ffff001>
+    800011d2:	00002717          	auipc	a4,0x2
+    800011d6:	b7673703          	ld	a4,-1162(a4) # 80002d48 <_GLOBAL_OFFSET_TABLE_+0x18>
+    800011da:	972e                	add	a4,a4,a1
+    800011dc:	757d                	lui	a0,0xfffff
+    800011de:	8f69                	and	a4,a4,a0
+    buddy.free_pages = 0;
+    800011e0:	0000a797          	auipc	a5,0xa
+    800011e4:	da078793          	addi	a5,a5,-608 # 8000af80 <buddy>
+    800011e8:	0a07bc23          	sd	zero,184(a5)
+    pages = (struct page_info *)mem_start;
+    800011ec:	f3f8                	sd	a4,224(a5)
+    buddy.total_pages = ((uint64)mem_end - (uint64)mem_start) / PGSIZE;
+    800011ee:	46c5                	li	a3,17
+    800011f0:	06ee                	slli	a3,a3,0x1b
+    800011f2:	40e68633          	sub	a2,a3,a4
+    buddy.memory_start = (void *)PGROUNDUP((uint64)pages + buddy.total_pages * sizeof(struct page_info));
+    800011f6:	8225                	srli	a2,a2,0x9
+    800011f8:	972e                	add	a4,a4,a1
+    800011fa:	9732                	add	a4,a4,a2
+    800011fc:	8f69                	and	a4,a4,a0
+    800011fe:	e3f8                	sd	a4,192(a5)
+    buddy.total_pages = ((uint64)mem_end - (uint64)buddy.memory_start) / PGSIZE;
+    80001200:	8e99                	sub	a3,a3,a4
+    80001202:	82b1                	srli	a3,a3,0xc
+    80001204:	fbd4                	sd	a3,176(a5)
+    for (int i = 0; i <= MAX_ORDER; i++)
+    80001206:	0000a717          	auipc	a4,0xa
+    8000120a:	e2a70713          	addi	a4,a4,-470 # 8000b030 <buddy+0xb0>
+        buddy.free_lists[i].next = &buddy.free_lists[i];
+    8000120e:	e39c                	sd	a5,0(a5)
+        buddy.free_lists[i].prev = &buddy.free_lists[i];
+    80001210:	e79c                	sd	a5,8(a5)
+    for (int i = 0; i <= MAX_ORDER; i++)
+    80001212:	07c1                	addi	a5,a5,16
+    80001214:	fee79de3          	bne	a5,a4,8000120e <pmm_init+0x4a>
+    initlock(&buddy.lock, "buddy");
+    80001218:	0000a497          	auipc	s1,0xa
+    8000121c:	d6848493          	addi	s1,s1,-664 # 8000af80 <buddy>
+    80001220:	00001597          	auipc	a1,0x1
+    80001224:	22858593          	addi	a1,a1,552 # 80002448 <_trampoline+0x448>
+    80001228:	0000a517          	auipc	a0,0xa
+    8000122c:	e2050513          	addi	a0,a0,-480 # 8000b048 <buddy+0xc8>
+    80001230:	00000097          	auipc	ra,0x0
+    80001234:	032080e7          	jalr	50(ra) # 80001262 <initlock>
+    buddy_add_memory(buddy.memory_start, mem_end);
+    80001238:	45c5                	li	a1,17
+    8000123a:	05ee                	slli	a1,a1,0x1b
+    8000123c:	60e8                	ld	a0,192(s1)
+    8000123e:	00000097          	auipc	ra,0x0
+    80001242:	ebc080e7          	jalr	-324(ra) # 800010fa <buddy_add_memory>
+    printf("Buddy system initialized: %d pages available\n", buddy.total_pages);
+    80001246:	78cc                	ld	a1,176(s1)
+    80001248:	00001517          	auipc	a0,0x1
+    8000124c:	20850513          	addi	a0,a0,520 # 80002450 <_trampoline+0x450>
+    80001250:	fffff097          	auipc	ra,0xfffff
+    80001254:	480080e7          	jalr	1152(ra) # 800006d0 <printf>
+}
+    80001258:	60e2                	ld	ra,24(sp)
+    8000125a:	6442                	ld	s0,16(sp)
+    8000125c:	64a2                	ld	s1,8(sp)
+    8000125e:	6105                	addi	sp,sp,32
+    80001260:	8082                	ret
+
+0000000080001262 <initlock>:
+#include "riscv.h"
+// #include "proc.h"
+#include "defs.h"
+
+void initlock(struct spinlock *lk, char *name)
+{
+    80001262:	1141                	addi	sp,sp,-16
+    80001264:	e422                	sd	s0,8(sp)
+    80001266:	0800                	addi	s0,sp,16
+    lk->name = name;
+    80001268:	e50c                	sd	a1,8(a0)
+    lk->locked = 0;
+    8000126a:	00052023          	sw	zero,0(a0)
+    lk->cpu = 0;
+    8000126e:	00053823          	sd	zero,16(a0)
+}
+    80001272:	6422                	ld	s0,8(sp)
+    80001274:	0141                	addi	sp,sp,16
+    80001276:	8082                	ret
+
+0000000080001278 <acquire>:
+
+void acquire(struct spinlock *lk)
+{
+    80001278:	1141                	addi	sp,sp,-16
+    8000127a:	e406                	sd	ra,8(sp)
+    8000127c:	e022                	sd	s0,0(sp)
+    8000127e:	0800                	addi	s0,sp,16
+    printf("lock : %s \n", lk->name);
+    80001280:	650c                	ld	a1,8(a0)
+    80001282:	00001517          	auipc	a0,0x1
+    80001286:	1fe50513          	addi	a0,a0,510 # 80002480 <_trampoline+0x480>
+    8000128a:	fffff097          	auipc	ra,0xfffff
+    8000128e:	446080e7          	jalr	1094(ra) # 800006d0 <printf>
+}
+    80001292:	60a2                	ld	ra,8(sp)
+    80001294:	6402                	ld	s0,0(sp)
+    80001296:	0141                	addi	sp,sp,16
+    80001298:	8082                	ret
+
+000000008000129a <release>:
+void release(struct spinlock *lk)
+{
+    8000129a:	1141                	addi	sp,sp,-16
+    8000129c:	e406                	sd	ra,8(sp)
+    8000129e:	e022                	sd	s0,0(sp)
+    800012a0:	0800                	addi	s0,sp,16
+    printf("unlock : %s \n", lk->name);
+    800012a2:	650c                	ld	a1,8(a0)
+    800012a4:	00001517          	auipc	a0,0x1
+    800012a8:	1ec50513          	addi	a0,a0,492 # 80002490 <_trampoline+0x490>
+    800012ac:	fffff097          	auipc	ra,0xfffff
+    800012b0:	424080e7          	jalr	1060(ra) # 800006d0 <printf>
+}
+    800012b4:	60a2                	ld	ra,8(sp)
+    800012b6:	6402                	ld	s0,0(sp)
+    800012b8:	0141                	addi	sp,sp,16
+    800012ba:	8082                	ret
 	...
