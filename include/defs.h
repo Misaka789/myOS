@@ -5,6 +5,9 @@
 #include "types.h"
 #include "spinlock.h"
 
+// 符号声明
+extern char etext[], edata[], end[], sbss[]; // 链接器符号
+
 // printf.c
 void printf(char *fmt, ...);
 void consputc(int c);
@@ -38,6 +41,10 @@ void free_pages(void *, int);
 void *alloc_page(void);
 void free_page(void *);
 void buddy_add_memory(void *, void *);
+void buddy_self_test(void);
+// 对外提供的接口
+void *kalloc(void);     // 分配单个页面
+void kfree(void *page); // 释放单个页面
 
 // main.c
 void main(void);
@@ -47,5 +54,18 @@ void *memset(void *dst, int c, uint n);
 void initlock(struct spinlock *lk, char *name);
 void acquire(struct spinlock *lk);
 void release(struct spinlock *lk);
+
+// vm.c
+pagetable_t create_pagetable(void);
+int map_page(pagetable_t pt, uint64 va, uint64 pa, int perm);
+void destory_pagetable(pagetable_t pt);
+pte_t *walk_lookup(pagetable_t pt, uint64 va);
+void kvminit(void);
+void kvminithart(void);
+uint64 kvmpa(uint64 va);
+uint64 walkaddr(pagetable_t pt, uint64 va);
+int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm);
+extern pagetable_t kernel_pagetable;
+// void freewalk(pagetable_t pt);
 
 #endif

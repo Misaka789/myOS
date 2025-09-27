@@ -1,0 +1,51 @@
+riscv-os kernel is starting...
+hart ID :0 started
+Hart started
+Basic initialization complete
+[2J[HRISC-V OS Kernel Starting...
+==============================
+Hart ID: 0
+Hart started successfully
+Testing integer: 42
+Testing negative: -123
+Testing zero: 0
+Testing hex: 0xabc
+Testing string: Hello
+Testing char: X
+Testing percent: %
+[2J[HBEFORE-CLEAR
+[2J[HAFTER-CLEAR
+[2J[HConsole cleared!
+INT_MAX: 2147483647
+INT_MIN: -2147483648
+NULL string: (null)
+Empty string: 
+
+Memory dump example:
+test_data declared
+test_data address: 0x0000000080002258
+sizeof(test_data): 8
+buddy test:
+end - 0x000000008000b330 
+buddy init begin ... 
+debug : end - 0x000000008000b330 
+debug : 0x000000008000c000 - 0x0000000088000000 , total pages = 32756 
+debug: after pages allocated , 0x000000008004c000 - 0x0000000088000000 
+debug: total pages = 32692 
+Buddy system initialized: 32692 pages available
+=== Buddy System Stats ===
+Memory start: 0x000000008004c000
+Total pages: 32692
+Free pages: 32692
+Used pages: 0
+
+Free lists:
+Order 2: 1 blocks (4 pages total)
+Order 4: 1 blocks (16 pages total)
+Order 5: 1 blocks (32 pages total)
+Order 7: 1 blocks (128 pages total)
+Order 8: 1 blocks (256 pages total)
+Order 9: 1 blocks (512 pages total)
+Order 10: 31 blocks (31744 pages total)
+========================
+

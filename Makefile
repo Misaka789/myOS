@@ -20,6 +20,9 @@ K = kernel
 # 链接选项
 LDFLAGS = -z max-page-size=4096
 
+CFLAGS += -fno-pic -fno-pie
+LDFLAGS += -no-pie
+
 # 内核目标文件
 OBJS = \
   $K/entry.o \
@@ -29,7 +32,8 @@ OBJS = \
   $K/printf.o \
   $K/console.o \
   $K/buddy.o	\
-  $K/spinlock.o
+  $K/spinlock.o \
+  $K/vm.o
 
 # 默认目标
 all: $K/kernel

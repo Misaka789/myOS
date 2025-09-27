@@ -1,5 +1,5 @@
 // 在 kernel/mm/buddy.h 中定义
-#ifndef BUDDY_H_
+#ifndef BUDDY_H
 #define BUDDY_H
 #include "types.h"
 #include "param.h"
@@ -25,10 +25,10 @@ struct buddy_system // 这个结构体存储在.bss 段中，永远都不会被�
     unsigned long free_pages;  // 空闲页数
     void *memory_start;        // 内存起始地址
     struct spinlock lock;      // 保护整个伙伴系统
-} buddy;
+};
 
 // 页面元数据
-struct page_info // 页面信息结构体声明 这里没有实例化，后面使用的是指针
+struct page_info // 页面信息结构体声明 这里没有实例化，后面使用的是指针 每个页面都有，用数组存储
 {
     unsigned int order; // 该页面所属块的大小（2^order页）
     unsigned int flags; // 页面标志
@@ -36,6 +36,9 @@ struct page_info // 页面信息结构体声明 这里没有实例化，后面�
 #define PAGE_HEAD 0x02  // 块的首页面
     // #define PAGE_BUDDY 0x04 // 是否可以与伙伴页面合并
 };
+
+extern struct buddy_system buddy; // ← 改为 extern 声明
+extern struct page_info *pages;   // ← 改为 extern 声明
 
 // extern struct page_info *pages; // 页面信息数组首地址 就是一个指针，存储在 .bss 段
 struct page_info *pages; // 页面信息数组首地址 就是一个指针，存储在 .bss 段
@@ -65,5 +68,8 @@ static void *get_buddy_block(void *page, int order);
 static void *merge_buddies(void *page1, void *page2, int order);
 // static void *find_block_head(void *page);
 static void clear_page_info(void *page, int order);
+
+// 测试函数
+void buddy_self_test(void); // 打印伙伴系统状态
 
 #endif

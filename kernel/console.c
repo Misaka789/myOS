@@ -112,6 +112,7 @@ void console_clear(void)
 {
     // 发送 ANSI 清屏序列
     console_puts("\033[2J\033[H"); // 清屏并将光标移动到左上角
+    console_flush();               //
 }
 
 // 设置光标位置

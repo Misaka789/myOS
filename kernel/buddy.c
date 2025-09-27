@@ -1,21 +1,85 @@
-#include "buddy.h"
-#include "defs.h"
-#include "spinlock.h"
 #include "types.h"
 #include "param.h"
+
+/* 明确声明链接器符号，放在最前面，避免被其它宏/声明覆盖 */
+extern char etext[], edata[], end[], sbss[];
+
+#include "defs.h"
+#include "spinlock.h"
 #include "memlayout.h"
+#include "buddy.h"
+
+struct buddy_system buddy; // 这个结构体存储在.bss 段中，永远都不会被释放
+struct page_info *pages;   // 页面信息数组首地址 就是一个指针，存储在 .bss 段
+
+// =========== Test ===========
+
+void *alloc_page(void)
+{
+    return alloc_pages(0);
+}
+
+void free_page(void *p)
+{
+    if (p)
+        free_pages(p, 0);
+}
+
+void buddy_print_stats(void)
+{
+    printf("=== Buddy System Stats ===\n");
+    printf("Memory start: %p\n", buddy.memory_start);
+    printf("Total pages: %d\n", buddy.total_pages);
+    printf("Free pages: %d\n", buddy.free_pages);
+    printf("Used pages: %d\n", buddy.total_pages - buddy.free_pages);
+
+    printf("\nFree lists:\n");
+    for (int i = 0; i <= MAX_ORDER; i++)
+    {
+        int count = 0;
+        struct free_block *block = buddy.free_lists[i].next;
+        while (block != &buddy.free_lists[i])
+        {
+            count++;
+            block = block->next;
+        }
+        if (count > 0)
+        {
+            printf("Order %d: %d blocks (%d pages total)\n",
+                   i, count, count * (1 << i));
+        }
+    }
+    printf("========================\n\n");
+}
+// ===========  Test ============
+
+void *kalloc(void) // 分配单个页面
+{
+    void *p = alloc_pages(0);
+    if (p)
+        memset(p, 0, PGSIZE); // 分配的页面清零
+    return p;
+}
+
+void kfree(void *page) // 释放单个页面
+{
+    if (page == 0)
+        return;
+    free_pages(page, 0);
+    return;
+}
 
 void pmm_init(void)
 {
-    extern char end[]; // 内核结束地址
-
+    printf("buddy init begin ... \n");
     // 1. 计算可用内存范围
     void *mem_start = (void *)PGROUNDUP((uint64)end);
     void *mem_end = (void *)PHYSTOP;
     buddy.total_pages = ((uint64)mem_end - (uint64)mem_start) / PGSIZE;
     buddy.memory_start = mem_start;
     buddy.free_pages = 0;
-
+    printf("debug : end - %p \n", end);
+    printf("debug : %p - %p , total pages = %d \n", mem_start, mem_end, buddy.total_pages);
     // 2. 分配页面信息数组 在可用物理空间的起始地址分配这个数组 ，之后紧跟着 bitmap 分配
     pages = (struct page_info *)mem_start;
 
@@ -32,6 +96,9 @@ void pmm_init(void)
     //  buddy.memory_start = (void *)PGROUNDUP((uint64)bitmap_start + bitmap_size);
     //  buddy.total_pages = ((uint64)mem_end - (uint64)buddy.memory_start) / PGSIZE;
 
+    printf("debug: after pages allocated , %p - %p \n", buddy.memory_start, mem_end);
+    printf("debug: total pages = %d \n", buddy.total_pages);
+
     // 5. 初始化空闲链表
     for (int i = 0; i <= MAX_ORDER; i++)
     {
@@ -46,6 +113,7 @@ void pmm_init(void)
     buddy_add_memory(buddy.memory_start, mem_end);
 
     printf("Buddy system initialized: %d pages available\n", buddy.total_pages);
+    buddy_print_stats();
 }
 
 void *alloc_pages(int order)
@@ -61,7 +129,7 @@ void *alloc_pages(int order)
     {
         if (!list_empty(&buddy.free_lists[current_order]))
         {
-            // 找到空闲块，从链表中移除 表示已使用 buddy.free_lists[current_order] 为哑结点对吗
+            // 找到空闲块，从链表中移除 表示已使用 buddy.free_lists[current_order]
             struct free_block *block = buddy.free_lists[current_order].next;
             list_remove(block);
 
@@ -325,3 +393,47 @@ static void *find_block_head(void *page)
     panic("find_block_head: no block head found!");
     // return 0; // 没找到
 } */
+
+void buddy_self_test(void)
+{
+    void *buf[32];
+    int orders[] = {0, 1, 2, 3, 0, 1, 0, 2, 1, 0};
+    int n = sizeof(orders) / sizeof(orders[0]);
+
+    printf("=== buddy self test START ===\n");
+
+    // 基本分配/释放
+    for (int i = 0; i < n; i++)
+    {
+        buf[i] = alloc_pages(orders[i]);
+        printf("alloc order=%d -> %p\n", orders[i], buf[i]);
+        if (buf[i] && (((uint64)buf[i] & (PGSIZE - 1)) != 0))
+            panic("buddy_self_test: returned address not page aligned");
+    }
+
+    // 检查一致性（free_pages + list counts）
+    buddy_print_stats();
+
+    // 释放并验证合并
+    for (int i = 0; i < n; i++)
+    {
+        if (buf[i])
+        {
+            printf("free order=%d -> %p\n", orders[i], buf[i]);
+            free_pages(buf[i], orders[i]);
+        }
+    }
+
+    // 再次打印并运行完整性检查（手动实现的或查看 pages 内容）
+    buddy_print_stats();
+
+    // 压力测试：重复分配释放
+    for (int r = 0; r < 200; r++)
+    {
+        int o = r % (MAX_ORDER + 1);
+        void *p = alloc_pages(o);
+        if (p)
+            free_pages(p, o);
+    }
+    printf("=== buddy self test END ===\n");
+}

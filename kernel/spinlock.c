@@ -17,11 +17,11 @@ void initlock(struct spinlock *lk, char *name)
 
 void acquire(struct spinlock *lk)
 {
-    printf("lock : %s \n", lk->name);
+    // printf("lock : %s \n", lk->name);
 }
 void release(struct spinlock *lk)
 {
-    printf("unlock : %s \n", lk->name);
+    // printf("unlock : %s \n", lk->name);
 }
 
 // // Acquire the lock.

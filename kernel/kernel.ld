@@ -46,5 +46,4 @@ SECTIONS
     PROVIDE(end = .);
   }
 
-  PROVIDE(end = .);
 }
