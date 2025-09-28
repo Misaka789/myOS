@@ -68,4 +68,16 @@ int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm);
 extern pagetable_t kernel_pagetable;
 // void freewalk(pagetable_t pt);
 
+// timer.c
+void timer_set_next();
+uint64 get_time();
+void set_timer(uint64 when);
+
+// trap.c
+void trap();
+void trapinit();
+void trapinithart();
+void kernelvec(); // 内核异常处理入口
+void timervec();  // 定时器中断处理入口
+
 #endif

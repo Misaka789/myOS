@@ -16,6 +16,11 @@ _entry:
     add sp, sp, a0          # sp = stack0 + 偏移量
     
     # 跳转到 C 语言的 start 函数
+
+     // 调试用，临时写一个字符到uart 
+    li t0,0x10000000
+    li t1 , 'T'
+    sb t1 ,0(t0)
     call start
     
     # 如果 start 函数返回（不应该发生），则无限循环

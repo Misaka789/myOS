@@ -67,3 +67,148 @@ struct page_info // 页面信息结构体声明 这里没有实例化，后面�
 ​	得到对应 buddy 块的首地址之后判断是否空闲，如果空闲就进行合并，删除两个小块，得到一个大块加入对应数组的空闲链表
 
 #### 问题与解决方案
+
+| 问题                                     | 根因                            | 解决                           |
+| ---------------------------------------- | ------------------------------- | ------------------------------ |
+| 重复定义 `freewalk` 链接失败             | 头文件暴露 + 源文件 static 冲突 | 移除头文件声明，内部 static    |
+| `walk_lookup` 返回未映射槽位导致断言失败 | 语义不明确                      | 增加有效位检查，未映射返回 0   |
+| 未对齐测试触发 panic                     | 实现硬退出                      | 改返回 -1，测试断言返回值      |
+| 多页映射连续性假设可能失效               | buddy 不保证连续                | （计划）改成逐页映射独立物理页 |
+| `%lx` 打印异常                           | printf 未实现长度修饰           | 改用 `%p` 或扩展解析器         |
+| 函数名拼写 `destory_pagetable`           | 打字错误                        | 添加正确别名并计划统一         |
+
+#### 源码理解总结
+
+- 分配/释放核心在“阶平衡”：分裂保证向下递归建立链，合并利用伙伴地址 XOR 特性。
+- 页表建立的关键在逐级索引：`PX(2/1/0, va)`；`walk` 在中间层缺失时按需分配（只 Zero 清理保证安全）。
+- 安全点：所有映射接口对齐检查 + 越界检查（`va >= 1<<39` 直接拒绝）。
+- 释放策略阶段性保守：不释放叶子物理页给后续“用户地址空间”留出明确控制点。
+
+### 测试验证部分
+
+#### 功能测试结果
+
+使用多个测试函数涵盖了多重使用场景，包括异常数据测试以及 多次分配测试
+
+```
+
+void pagetable_test(void)
+{
+    pagetable_t pt = create_pagetable();
+
+    // 测试基本映射
+    uint64 va = 0x1000000;
+    uint64 pa = (uint64)alloc_page();
+    assert(map_page(pt, va, pa, PTE_R | PTE_W) == 0);
+
+    // 测试地址转换
+    pte_t *pte = walk_lookup(pt, va);
+    assert(pte != 0 && (*pte & PTE_V));
+    assert(PTE2PA(*pte) == pa);
+    printf("Page table basic mapping test passed.\n");
+
+    // 测试权限位
+    assert(*pte & PTE_R);
+    assert(*pte & PTE_W);
+    assert(!(*pte & PTE_X));
+    printf("Page table permission bits test passed.\n");
+}
+
+void virtual_memory_test()
+{
+    printf("Before enabling paging...\n");
+    kvminit();
+    kvminithart();
+    printf("After enabling paging...\n");
+}
+
+void pagetable_test_enhanced(void)
+{
+    printf("\n[TEST] pagetable_test begin\n");
+    pagetable_t pt = create_pagetable();
+    assert(pt != 0);
+
+    // 1. 根页表清零性（抽样检查几个槽位）
+    for (int i = 0; i < 8; i++)
+        assert(((uint64 *)pt)[i] == 0);
+
+    // 2. 基本单页映射
+    uint64 va = 0x01000000; // 16MB 对齐
+    uint64 pa = (uint64)alloc_page();
+    assert((va & (PGSIZE - 1)) == 0 && (pa & (PGSIZE - 1)) == 0);
+    assert(map_page(pt, va, pa, PTE_R | PTE_W) == 0);
+
+    pte_t *pte = walk_lookup(pt, va);
+    assert(pte && (*pte & PTE_V));
+    assert(PTE2PA(*pte) == pa);
+    assert((*pte & PTE_R) && (*pte & PTE_W) && !(*pte & PTE_X));
+    printf("[OK ] single mapping + flags\n");
+
+    // 3. 重复映射应失败
+    assert(map_page(pt, va, pa, PTE_R | PTE_W) != 0);
+    printf("[OK ] duplicate mapping rejected\n");
+
+    // 4. 未映射地址查询
+    uint64 va2 = va + 0x2000; // 没有建立映射
+    assert(walk_lookup(pt, va2) == 0);
+    printf("[OK ] walk_lookup on unmapped returns NULL\n");
+
+    // 5. 非法参数测试（未对齐）
+    uint64 bad_va = va + 123;
+    assert(map_page(pt, bad_va, pa, PTE_R) == -1);
+    printf("[OK ] unaligned map_page rejected\n");
+
+    // 6. 多页区间映射（mappages）
+    uint64 va_range = 0x02000000;
+    void *pA = alloc_page();
+    void *pB = alloc_page();
+    assert(pA && pB);
+    assert(mappages(pt, va_range, 2 * PGSIZE, (uint64)pA, PTE_R | PTE_W) == 0);
+    // 第二页物理应是 pA + PGSIZE（因为我们假设连续页；若 buddy 不保证，改成逐页 map_page）
+    pte_t *pteA = walk_lookup(pt, va_range);
+    pte_t *pteB = walk_lookup(pt, va_range + PGSIZE);
+    assert(pteA && pteB);
+    assert(PTE2PA(*pteA) == (uint64)pA);
+    assert(PTE2PA(*pteB) == ((uint64)pA + PGSIZE)); // 若失败，说明物理不连续
+    printf("[OK ] range mapping 2 pages\n");
+
+    // 7. 中间页表未被多余创建：尝试查询一个远地址，walk_lookup 不应分配
+    uint64 far_va = 0x4000000000ULL; // 超出 Sv39 (1<<39) → 直接 0
+    assert(walk_lookup(pt, far_va) == 0);
+    printf("[OK ] out-of-range VA rejected\n");
+
+    // 可选：打印三级索引
+    int l2 = PX(2, va), l1 = PX(1, va), l0 = PX(0, va);
+    printf("VA 0x%p indices L2=%d L1=%d L0=%d\n", (void *)va, l2, l1, l0);
+
+    // 释放（注意：destroy_pagetable 只应释放页表页，不释放 pA/pB/pa 指代的数据页）
+    destory_pagetable(pt);
+    free_page((void *)pa);
+    free_page(pA);
+    free_page(pB);
+
+    printf("[TEST] pagetable_test OK\n");
+}
+
+```
+
+
+
+![PixPin_2025-09-27_19-29-57](./PixPin_2025-09-27_19-29-57.png)
+
+所有测试均可通过
+
+## 实验四：中断处理与时钟管理
+
+
+
+### 实验过程部分
+
+
+
+#### 问题与解决方案
+
+在一切都正常的情况下，出现没有时钟中断输出的情况
+
+
+

@@ -33,7 +33,12 @@ OBJS = \
   $K/console.o \
   $K/buddy.o	\
   $K/spinlock.o \
-  $K/vm.o
+  $K/vm.o \
+  $K/trap.o \
+  $K/timer.o \
+  $K/kernelvec.o \
+  $K/machine_handler.o \
+  $K/timervec.o
 
 # 默认目标
 all: $K/kernel
@@ -55,7 +60,7 @@ clean:
 	rm -f kernel/*.o kernel/*.d kernel/*.asm kernel/*.sym kernel/kernel
 
 # QEMU运行
-QEMUOPTS = -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic
+QEMUOPTS = -machine virt -bios none -kernel kernel/kernel -m 128M -smp 1 -nographic
 
 qemu: kernel/kernel
 	qemu-system-riscv64 $(QEMUOPTS)

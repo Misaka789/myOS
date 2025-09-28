@@ -7,8 +7,8 @@
 #include "riscv.h"
 #include "stdarg.h"
 #include "defs.h" // 包含统一声明
-// 外部符号，由链接器提供
-// extern char edata[], end[];
+                  // 外部符号，由链接器提供
+extern char edata[], end[];
 
 // 函数声明
 /* void uartinit();
@@ -37,6 +37,31 @@ void assert(int condition);
 void pagetable_test();
 void pagetable_test_enhanced();
 void virtual_memory_test();
+
+static inline uint64 r_mip()
+{
+    uint64 x;
+    asm volatile("csrr %0, mip" : "=r"(x));
+    return x;
+}
+
+void debug_poll_timer()
+{
+    printf("[dbg] poll timer pending...\n");
+    // uint64 start = 0;
+    for (volatile uint64 i = 0; i < 5000000; i++)
+    {
+        uint64 mip;
+        // asm volatile("csrr %0, sip" : "=r"(sip));
+        mip = r_mip();
+        if (mip & (1ULL << 7))
+        { // STIP
+            printf("[dbg] STIP observed mip=0x%lx\n", mip);
+            return;
+        }
+    }
+    printf("[dbg] NO STIP (maybe mtimecmp未写 or mideleg 未含bit5)\n");
+}
 
 void main()
 {
@@ -68,6 +93,16 @@ void main()
     pagetable_test_enhanced();
 
     virtual_memory_test();
+
+    debug_poll_timer();
+
+    trapinit(); // 初始化陷阱处理
+    trapinithart();
+
+    w_sie(r_sie() | SIE_SSIE); // 允许 S 模式软件中断
+    // w_mstatus(r_mstatus() | MSTATUS_MIE); // 开中断
+    //  允许 S 级中断
+    intr_on();
 
     for (;;)
     {
