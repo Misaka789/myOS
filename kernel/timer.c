@@ -4,8 +4,9 @@
 #include "defs.h"
 
 // 约 100Hz；可调整
-#define TIMER_INTERVAL 1000000ULL
-// extern CLINT; // 0x2000000
+// #define TIMER_INTERVAL 1000000ULL
+#define TIMER_INTERVAL 10000000ULL // 测试的较长的中断 间隔时间
+//  extern CLINT; // 0x2000000
 #ifndef CLINT
 #define CLINT 0x02000000L // 核心本地中断器
 

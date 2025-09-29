@@ -38,6 +38,7 @@ OBJS = \
   $K/timer.o \
   $K/kernelvec.o \
   $K/machine_handler.o \
+  $K/debug.o \
   $K/timervec.o
 
 # 默认目标

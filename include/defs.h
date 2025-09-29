@@ -80,4 +80,7 @@ void trapinithart();
 void kernelvec(); // 内核异常处理入口
 void timervec();  // 定时器中断处理入口
 
+// debug.c
+void print_scause();
+
 #endif

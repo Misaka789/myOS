@@ -10,15 +10,6 @@
                   // 外部符号，由链接器提供
 extern char edata[], end[];
 
-// 函数声明
-/* void uartinit();
-void uartputs(char *);
-void uartputc(int);
-void printf(char *fmt, ...);
-void hexdump(void *addr, int len);
-void console_clear(void);
-void consputc(int); */
-
 // 简单的内存清零函数
 void *memset(void *dst, int c, uint n)
 {
@@ -43,24 +34,6 @@ static inline uint64 r_mip()
     uint64 x;
     asm volatile("csrr %0, mip" : "=r"(x));
     return x;
-}
-
-void debug_poll_timer()
-{
-    printf("[dbg] poll timer pending...\n");
-    // uint64 start = 0;
-    for (volatile uint64 i = 0; i < 5000000; i++)
-    {
-        uint64 mip;
-        // asm volatile("csrr %0, sip" : "=r"(sip));
-        mip = r_mip();
-        if (mip & (1ULL << 7))
-        { // STIP
-            printf("[dbg] STIP observed mip=0x%lx\n", mip);
-            return;
-        }
-    }
-    printf("[dbg] NO STIP (maybe mtimecmp未写 or mideleg 未含bit5)\n");
 }
 
 void main()
@@ -94,15 +67,20 @@ void main()
 
     virtual_memory_test();
 
-    debug_poll_timer();
+    // debug_poll_timer();
 
     trapinit(); // 初始化陷阱处理
     trapinithart();
 
     w_sie(r_sie() | SIE_SSIE); // 允许 S 模式软件中断
-    // w_mstatus(r_mstatus() | MSTATUS_MIE); // 开中断
-    //  允许 S 级中断
-    intr_on();
+    // w_mstatus(r_mstatus() | MSTATUS_MIE); // 开中断 这个不能在 S 模式下设置
+
+    intr_on(); // 允许 SIE 中断
+
+    // uint64 sip = r_sip();
+    // printf("sip=%p\n", sip);
+    // uint64 mip = r_mip();
+    // printf("mip=%p\n", mip);
 
     for (;;)
     {

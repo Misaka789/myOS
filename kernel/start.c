@@ -21,22 +21,23 @@ extern void timervec(); // M 模式定时器入口
 
 void start()
 {
-    // 1. 设置 S M 模式的异常向量 这里还没有必要设置 S 模式的异常向量
+    // 1. 设置 S M 模式的异常向量
     // w_stvec((uint64)kernelvec);
     w_mtvec((uint64)timervec);
+    w_stvec((uint64)kernelvec); // 设置 S 模式的异常向量
 
     // 设置mstatus.MPP 为 S 模式， 为 mret 切换为 S 模式做准备
     uint64 x = r_mstatus();
-    x &= ~MSTATUS_MPP_MASK;
-    x |= MSTATUS_MPP_S;
+    x &= ~MSTATUS_MPP_MASK; // 清除 machine previous privilege 位
+    x |= MSTATUS_MPP_S;     // 设置mret 之后的特权级为 S 级
+    x |= (1 << 13);         // 设置允许使用浮点指令集
+    x |= MSTATUS_MPIE;      // 设置 MPIE 位，让 mret 之后中断可用
+                            // x |= MSTATUS_MIE; // 开中断
     w_mstatus(x);
 
     // 3. 委托：把常见异常与中断交给 S (简化：全委托)
     w_medeleg(0xffff);
     w_mideleg(0xffff & ~(1 << 7)); // 7号中断不委托 (机器模式定时器中断)
-
-    // 4. 允许 S 使用 time CSR
-    // w_mcounteren(r_mcounteren() | 2); // bit1 = time
 
     // 5. 开启 M 定时器中断 (mtie)
     w_mie(r_mie() | MIE_MTIE);

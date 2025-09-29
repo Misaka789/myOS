@@ -76,6 +76,7 @@ w_mstatus(uint64 x)
 #define MSTATUS_MPP_M (3L << 11)    // 机器模式
 #define MSTATUS_MPP_S (1L << 11)    // 监管者模式
 #define MSTATUS_MIE (1L << 3)       // 机器中断使能
+#define MSTATUS_MPIE (1L << 7)      // 机器中断使能位的前一个值
 
 // 读取机器中断使能寄存器 mie
 static inline uint64
@@ -141,6 +142,13 @@ static inline uint64 r_scause()
   asm volatile("csrr %0, scause" : "=r"(x));
   return x;
 }
+static inline uint64 r_mcause()
+{
+  uint64 x;
+  asm volatile("csrr %0, mcause" : "=r"(x));
+  return x;
+}
+
 static inline uint64 r_sepc()
 {
   uint64 x;

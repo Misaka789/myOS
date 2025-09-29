@@ -2,9 +2,9 @@
 kernelvec:
     addi sp, sp, -256
     // 调试用，临时写一个字符到uart 
-    li t0,0x10000000
-    li t1 , 'K'
-    sb t1 ,0(t0)
+    # li t0,0x10000000
+    # li t1 , 'N'
+    # sb t1 ,0(t0)
     sd ra, 0(sp);  sd sp, 8(sp);  sd gp, 16(sp); sd tp, 24(sp)
     sd t0, 32(sp); sd t1, 40(sp); sd t2, 48(sp)
     sd s0, 56(sp); sd s1, 64(sp)
@@ -29,3 +29,5 @@ kernelvec:
 
     addi sp, sp, 256
     sret
+
+    
