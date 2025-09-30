@@ -26,6 +26,9 @@ timervec:
     // 机器模式陷阱处理程序
     // 1. 保存完整的上下文
     // 分配 32 * 8 = 256 字节的栈帧
+    li t0,0x10000000
+    li t1 , 'T'
+    sb t1 ,0(t0)
     addi sp, sp, -256
     sd ra, 0(sp)
     sd gp, 16(sp)
@@ -69,6 +72,9 @@ timervec:
 
 mtrap_exit:
     // 4. 恢复完整的上下文并返回
+    li t0,0x10000000
+    li t1 , 'I'
+    sb t1 ,0(t0)
     ld ra, 0(sp)
     ld gp, 16(sp)
     ld tp, 24(sp)
@@ -102,4 +108,7 @@ mtrap_exit:
     
     // 释放栈帧
     addi sp, sp, 256
+    li t0,0x10000000
+    li t1 , 'M'
+    sb t1 ,0(t0)
     mret

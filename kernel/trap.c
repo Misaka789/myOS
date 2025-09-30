@@ -26,10 +26,9 @@ static void clockintr() // 定时器中断
 
     // 关键：在 S 模式处理完后，必须清除软件中断挂起位
     w_sip(r_sip() & ~(1 << 1));
-    printf("tick    \n");
-    // 只让 hart0 维护全局 ticks
-    // if (r_mhartid() == 0)
-    //{
+    extern volatile int *test_flag;
+    if (test_flag)
+        (*test_flag)++;
     // acquire(&tickslock);
     ticks++;
     // release(&tickslock);
@@ -38,9 +37,10 @@ static void clockintr() // 定时器中断
     //}
 }
 
-void trap()
+void kerneltrap()
 {
     uint64 sc = r_scause();
+    printf("entry kernel trap, scause = %p\n", sc);
     if (sc >> 63)
     { // interrupt
         uint64 code = sc & 0xff;

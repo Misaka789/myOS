@@ -6,6 +6,16 @@
 #include "memlayout.h"
 #include "riscv.h"
 
+#ifndef MSTATUS_MPIE
+#define MSTATUS_MPIE (1L << 7) // machine previous interrupt enable
+
+#endif
+
+#ifndef MIE_MTIE
+#define MIE_MTIE (1L << 7) // machine timer interrupt enable
+
+#endif
+
 // 每个CPU的启动栈，在entry.S中使用
 __attribute__((aligned(16))) char stack0[4096 * NCPU];
 
@@ -53,6 +63,12 @@ void start()
     // 8. PMP 全内存访问
     asm volatile("csrw pmpaddr0, %0" : : "r"(0x3fffffffffffffull));
     asm volatile("csrw pmpcfg0, %0" : : "r"(0xf));
+
+    // w_mcounteren(r_mcounteren() | (1L << 2)); // 允许 S 模式 rdtime
+
+    // 暂时禁用分页
+    // w_satp(0);
+    // asm volatile("sfence.vma");
 
     // 7. 获取当前CPU的ID
     int id = r_mhartid();
