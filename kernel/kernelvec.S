@@ -1,4 +1,5 @@
     .globl kernelvec
+    .align 4
 kernelvec:
     addi sp, sp, -256
     // 调试用，临时写一个字符到uart 
@@ -15,7 +16,7 @@ kernelvec:
     sd s10,200(sp);sd s11,208(sp)
     sd t3,216(sp); sd t4,224(sp); sd t5,232(sp); sd t6,240(sp)
 
-    call trap
+    call kerneltrap
 
     ld ra, 0(sp);  ld sp, 8(sp);  ld gp, 16(sp); ld tp, 24(sp)
     ld t0, 32(sp); ld t1, 40(sp); ld t2, 48(sp)

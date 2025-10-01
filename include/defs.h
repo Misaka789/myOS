@@ -74,7 +74,7 @@ uint64 get_time();
 void set_timer(uint64 when);
 
 // trap.c
-void trap();
+void kerneltrap();
 void trapinit();
 void trapinithart();
 void kernelvec(); // 内核异常处理入口
@@ -82,5 +82,12 @@ void timervec();  // 定时器中断处理入口
 
 // debug.c
 void print_scause();
+void print_test();
+void pmm_basic_test();
+void assert(int condition);
+void pagetable_test();
+void pagetable_test_enhanced();
+void virtual_memory_test();
+void clockintr_test();
 
 #endif
