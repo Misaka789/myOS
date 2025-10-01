@@ -194,23 +194,21 @@ void pagetable_test_enhanced(void)
 
     printf("[TEST] pagetable_test OK\n");
 }
-volatile int *test_flag = 0; // 用于测试中断处理函数是否被调用
-void timer_interrupt_test(int n)
-{
-    printf("\n[TEST] timer_interrupt_test begin\n");
-    intr_on(); // 允许中断
-    // uint64 start = r_time(); // 这里不能使用get_time()，因为 get_time() 只能在 M 模式下使用
-    int interrupt_count = 0;
-    test_flag = &interrupt_count;
-    while (interrupt_count < n)
-    {
-        printf("Waiting for timer interrupts... count=%d\n", interrupt_count + 1);
-        for (volatile int i = 0; i < 10000000; i++)
-            ; // 简单延时，避免打印过快
-    }
-    // uint64 end = r_time();
-    intr_off(); // 关闭中断
-    // printf("Received %d timer interrupts in %d ticks (from %p to %p)\n", n, end - start, (void *)start, (void *)end);
+volatile int test_flag = 0; // 用于测试中断处理函数是否被调用
 
-    printf("[TEST] timer_interrupt_test OK\n");
+void clockintr_test()
+{
+    printf("[Test] clockintr_test begin\n");
+    uint64 start = r_time();
+    // int interrupt_count = 0;
+    // test_flag = &interrupt_count;
+    while (test_flag < 5)
+    {
+        printf("Waiting for timer interrupts... count=%d\n", test_flag);
+        for (volatile int i = 0; i < 10000000; i++)
+            asm volatile("nop");
+    }
+    uint64 end = r_time();
+    printf("[Test] clockintr_test end, interrupts=%d, time elapsed=%d ticks\n", test_flag, end - start);
+    test_flag = 0;
 }

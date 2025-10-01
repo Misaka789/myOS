@@ -33,6 +33,7 @@ void main()
 {
     // 1. 清零BSS段
     // BSS段包含未初始化的全局变量，C语言标准要求它们初始化为0
+    printf("stvec = %p\n", r_stvec());
     memset(edata, 0, end - edata);
 
     // 2. 打印启动信息
@@ -50,7 +51,7 @@ void main()
     printf("buddy test:\n");
     printf("end - %p \n", end);
     pmm_init();
-
+    printf("stvec = %p\n", r_stvec());
     // 内存分配测试
     pmm_basic_test();
 
@@ -67,23 +68,13 @@ void main()
 
     w_sie(r_sie() | SIE_SSIE); // 允许 S 模式软件中断
 
-    // timer_interrupt_test(5);
-    //  w_mstatus(r_mstatus() | MSTATUS_MIE); // 开中断 这个不能在 S 模式下设置
-    printf("Before enabling interrupt... sstatus = %p\n", r_sstatus());
-    printf("sie = %p\n", r_sie());
+    printf("stvec = %p\n", r_stvec());
+
+    printf("before intr_on sstatus = %p\n", r_sstatus());
     intr_on(); // 允许 SIE 中断
-    // w_sstatus(r_sstatus() | SSTATUS_SIE); // 开中断
-    // printf("stvec = %p\n", r_stvec());
-    printf("After enabling interrupt... sstatus = %p\n", r_sstatus());
+    printf("after intr_on sstatus = %p\n", r_sstatus());
 
-    // 获取当前cpu  核心id 访问了只有 m 模式才能访问的寄存器，按理说应该陷入 kerneltrap
-    uint64 id = r_mhartid();
-    printf("Current hartid = %d\n", id);
-
-    // 主动创造异常
-    // int b = 0;
-    // int a = 1 / b;
-    // printf("a = %d\n", a);
+    clockintr_test();
 
     // uint64 sip = r_sip();
     // printf("sip=%p\n", sip);

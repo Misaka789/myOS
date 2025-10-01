@@ -57,6 +57,12 @@ void start()
     extern void timer_set_next();
     timer_set_next();
 
+    // 允许 S 模式访问时间
+    // 允许 S-mode 和 U-mode 访问 time, cycle, instret 计数器
+    //
+    uint64 val = (1 << 0) | (1 << 1) | (1 << 2); // val = 7
+    w_mcounteren(val);
+
     // 7. 设置 mret 返回地址
     // w_mepc((uint64)main);
 

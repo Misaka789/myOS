@@ -88,9 +88,6 @@ void assert(int condition);
 void pagetable_test();
 void pagetable_test_enhanced();
 void virtual_memory_test();
-void timer_interrupt_test(int);
-
-// 全局变量
-extern volatile int *test_flag; // 用于测试中断处理函数是否被调用
+void clockintr_test();
 
 #endif
