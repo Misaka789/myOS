@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "riscv.h"
 #include "defs.h"
+#include "proc.h"
 
 void initlock(struct spinlock *lk, char *name)
 {
@@ -15,9 +16,57 @@ void initlock(struct spinlock *lk, char *name)
 
 void acquire(struct spinlock *lk)
 {
-    // printf("lock : %s \n", lk->name);
+    push_off();      // 关中断防止死锁
+    if (holding(lk)) // 不可重入
+        panic("acquire");
+
+    while (__sync_lock_test_and_set(&lk->locked, 1) != 0)
+        ; // cas 自选操作
+
+    // 内存屏障 让这之后的操作不被重排序到前面
+    __sync_synchronize();
+
+    lk->cpu = mycpu();
 }
 void release(struct spinlock *lk)
 {
-    // printf("unlock : %s \n", lk->name);
+    if (!holding(lk))
+        panic("release");
+
+    lk->cpu = 0;
+
+    __sync_synchronize();
+
+    __sync_lock_release(&lk->locked);
+
+    pop_off();
+}
+
+int holding(struct spinlock *lk)
+{
+    int r;
+    r = (lk->locked && lk->cpu == mycpu());
+    return r;
+}
+
+void push_off(void)
+{
+    int old = intr_get();
+    intr_off();
+
+    if (mycpu()->noff == 0)
+        mycpu()->intena = old;
+    mycpu()->noff += 1;
+}
+
+void pop_off(void)
+{
+    struct cpu *c = mycpu();
+    if (intr_get())
+        panic("pop_off - interruptible");
+    if (c->noff < 1)
+        panic("pop_off");
+    c->noff -= 1;
+    if (c->noff == 0 && c->intena)
+        intr_on();
 }

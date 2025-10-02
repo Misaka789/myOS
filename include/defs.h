@@ -51,9 +51,12 @@ void main(void);
 void *memset(void *dst, int c, uint n);
 
 // spinlock.c
-void initlock(struct spinlock *lk, char *name);
-void acquire(struct spinlock *lk);
-void release(struct spinlock *lk);
+void acquire(struct spinlock *);
+int holding(struct spinlock *);
+void initlock(struct spinlock *, char *);
+void release(struct spinlock *);
+void push_off(void);
+void pop_off(void);
 
 // vm.c
 pagetable_t create_pagetable(void);
@@ -99,5 +102,10 @@ uint64 plic_claim(void);
 void plic_complete(int irq);
 void plic_enable(int irq);
 void plic_disable(int irq);
+
+// proc.c
+void procinit(void);
+struct cpu *mycpu(void);
+uint64 cpuid(void);
 
 #endif

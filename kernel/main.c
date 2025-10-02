@@ -80,6 +80,7 @@ void main()
     printf("after intr_on sstatus = %p\n", r_sstatus());
 
     // clockintr_test();
+    procinit();
 
     for (;;)
     {

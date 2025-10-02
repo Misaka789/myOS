@@ -185,7 +185,12 @@ static inline uint64 r_stvec()
 #define SSTATUS_SIE (1 << 1)
 static inline void intr_on() { w_sstatus(r_sstatus() | SSTATUS_SIE); }
 static inline void intr_off() { w_sstatus(r_sstatus() & ~SSTATUS_SIE); }
-
+static inline int
+intr_get()
+{
+  uint64 x = r_sstatus();
+  return (x & SSTATUS_SIE) != 0;
+}
 // 监管者模式中断处理
 static inline void w_medeleg(uint64 x) { asm volatile("csrw medeleg, %0" ::"r"(x)); }
 static inline void w_mideleg(uint64 x) { asm volatile("csrw mideleg, %0" ::"r"(x)); }
