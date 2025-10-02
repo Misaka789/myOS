@@ -16,7 +16,19 @@
 #define PGSHIFT 12
 
 // 页对齐宏
+#ifndef PGROUNDUP
 #define PGROUNDUP(sz) (((sz) + PGSIZE - 1) & ~(PGSIZE - 1))
+#endif
+
+#ifndef PGROUNDDOWN
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE - 1))
+#endif
+
+// PLIC 处理宏
+#define PLIC_PRIORITY (PLIC + 0x0)                               // 优先级寄存器基址
+#define PLIC_PENDING (PLIC + 0x1000)                             // 待处理寄存器基址
+#define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart) * 0x100)      // 每个 hart 的使能寄存器
+#define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart) * 0x2000) // 每个 hart 的优先级阈值寄存器
+#define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart) * 0x2000)    // 每个 hart 的中断请求寄存器
 
 #endif

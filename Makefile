@@ -74,7 +74,7 @@
 
 
 # 工具链设置
-TOOLPREFIX = riscv64-linux-gnu-
+TOOLPREFIX = riscv64-unknown-elf-
 CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gas
 LD = $(TOOLPREFIX)ld
@@ -88,6 +88,8 @@ CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I./include
 CFLAGS += -fno-stack-protector
+
+
 
 #目录设置
 K = kernel
@@ -114,7 +116,8 @@ OBJS = \
   $K/buddy.o \
   $K/vm.o \
   $K/debug.o \
-  $K/main.o
+  $K/main.o \
+  $K/plic.o
 
 # 默认目标
 all: $K/kernel

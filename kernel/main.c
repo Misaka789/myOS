@@ -8,6 +8,11 @@
 #include "stdarg.h"
 #include "defs.h" // 包含统一声明
                   // 外部符号，由链接器提供
+// 解决编辑器爆红
+#ifndef SIE_SSIE
+#define SIE_SSIE (1L << 1)
+#endif
+
 extern char edata[], end[];
 
 // 简单的内存清零函数
@@ -74,12 +79,7 @@ void main()
     intr_on(); // 允许 SIE 中断
     printf("after intr_on sstatus = %p\n", r_sstatus());
 
-    clockintr_test();
-
-    // uint64 sip = r_sip();
-    // printf("sip=%p\n", sip);
-    // uint64 mip = r_mip();
-    // printf("mip=%p\n", mip);
+    // clockintr_test();
 
     for (;;)
     {
@@ -87,9 +87,3 @@ void main()
         asm volatile("wfi"); // Wait For Interrupt
     }
 }
-/*
-系统服务初始化：启动操作系统的各个子系统（内存管理、进程管理、文件系统等）
-数据结构初始化：初始化内核的全局数据结构（进程表、文件表、内存分配器等）
-第一个进程创建：创建系统的第一个用户进程（通常是init进程）
-系统状态转换：从启动状态转换到正常运行状态
-*/

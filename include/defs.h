@@ -80,6 +80,8 @@ void trapinithart();
 void kernelvec(); // 内核异常处理入口
 void timervec();  // 定时器中断处理入口
 
+#define MAX_IRQS 1024
+
 // debug.c
 void print_scause();
 void print_test();
@@ -89,5 +91,13 @@ void pagetable_test();
 void pagetable_test_enhanced();
 void virtual_memory_test();
 void clockintr_test();
+
+// plic.c
+void plicinit(void);
+void plicinithart(void);
+uint64 plic_claim(void);
+void plic_complete(int irq);
+void plic_enable(int irq);
+void plic_disable(int irq);
 
 #endif

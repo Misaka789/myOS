@@ -78,6 +78,7 @@ void start()
 
     // 7. 获取当前CPU的ID
     int id = r_mhartid();
+    w_tp(id); // 将 CPU ID 写入 tp 寄存器
 
     // 8. 只有CPU 0负责主要的初始化工作
     //    其他CPU等待CPU 0完成初始化后再启动

@@ -6,17 +6,70 @@
 
 volatile uint64 ticks;
 struct spinlock tickslock;
+#ifndef interrupt_handler_t
+typedef void (*interrupt_handler_t)(void);
+#endif
+#ifndef MAX_IRQS
+#define MAX_IRQS 1024
+#endif
+static interrupt_handler_t interrupt_handlers[MAX_IRQS];
+struct spinlock irq_lock;
 
-extern void timer_set_next();
+extern void
+timer_set_next();
 extern void kernelvec();
 
 void trapinit()
 {
-    initlock(&tickslock, "ticks");
+    initlock(&tickslock, "irq_lock");
+    acquire(&irq_lock);
+    for (int i = 0; i < MAX_IRQS; i++)
+    {
+        interrupt_handlers[i] = 0; // 初始化所有中断处理函数指针为 NULL
+    }
+    release(&irq_lock);
+    // 初始化 PLIC 硬件
+    plicinit();
+    printf("Interrupt system initialized.\n");
 }
 void trapinithart()
 {
+    plicinithart();
     w_stvec((uint64)kernelvec);
+}
+
+void register_interrupt(int irq, interrupt_handler_t handler)
+{
+    if (irq < 0 || irq >= MAX_IRQS || handler == 0)
+    {
+        panic("register_interrupt: invalid irq or handler");
+    }
+    acquire(&irq_lock);
+    if (interrupt_handlers[irq] != 0)
+    {
+        panic("register_interrupt: handler already registered");
+    }
+    interrupt_handlers[irq] = handler;
+    release(&irq_lock);
+}
+
+// 外部中断使能
+void enable_interrupt(int irq)
+{
+    if (irq <= 0 || irq >= MAX_IRQS)
+    {
+        panic("enable_interrupt: invalid irq");
+    }
+    plic_enable(irq);
+}
+
+void disable_interrupt(int irq)
+{
+    if (irq <= 0 || irq >= MAX_IRQS)
+    {
+        panic("disable_interrupt: invalid irq");
+    }
+    plic_disable(irq);
 }
 
 static void clockintr() // 定时器中断
@@ -53,7 +106,29 @@ void kerneltrap()
             printf("enter clockintr successfully\n");
             clockintr();
             return;
-        case 2: //
+        case 9:                     // 外部设备中断
+            int irq = plic_claim(); // 从 PLIC 获取中断号
+            if (irq < 0 || irq >= MAX_IRQS)
+            {
+                printf("kerneltrap: invalid irq %d\n", irq);
+                break;
+            }
+            printf("kerneltrap: irq %d\n", irq);
+            if (interrupt_handlers[irq])
+            {
+                interrupt_handlers[irq](); // 调用注册的中断处理函数
+            }
+            else
+            {
+                printf("No handler for irq %d\n", irq);
+            }
+            plic_complete(irq); // 向 PLIC 汇报中断处理完成
+            return;
+        default:
+            printf("kerneltrap: unexpected scause %p\n", sc);
+            printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+            panic("kerneltrap");
+            break;
         }
     }
     else
