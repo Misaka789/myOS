@@ -81,7 +81,7 @@ void main()
 
     // clockintr_test();
     procinit();
-    userinit(); // 创建第一个用户进程
+    // userinit(); // 创建第一个用户进程
 
     scheduler(); // 让主 CPU 核心进入调度器，永不返回
     // process_creation_test();

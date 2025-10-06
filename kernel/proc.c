@@ -194,10 +194,10 @@ void userinit(void)
     initproc = p;
     // p->cwd = namei("/"); // 设置当前工作目录为根目录
     // proc_freepagetable(p->pagetable, 0);
-    extern char _binary_user_first_prog_bin_start[];
-    extern char _binary_user_first_prog_bin_size[];
-    if (uvmcopy(p->pagetable, p->sz, (uint64)_binary_user_first_prog_bin_start, (uint64)_binary_user_first_prog_bin_size) < 0)
-        panic("userinit: uvmcopy failed");
+    // extern char _binary_user_first_prog_bin_start[];
+    // extern char _binary_user_first_prog_bin_size[];
+    // if (uvmcopy(p->pagetable, p->sz, (uint64)_binary_user_first_prog_bin_start, (uint64)_binary_user_first_prog_bin_size) < 0)
+    //     panic("userinit: uvmcopy failed");
     p->sz = PGSIZE;
 
     // prepare for the first return from kernel to user.

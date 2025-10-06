@@ -45,8 +45,7 @@ OBJS = \
   $K/proc.o \
   $K/trampoline.o \
   $K/swtch.o \
-  $K/string.o \
-  $K/first_proc.o
+  $K/string.o 
 
 # 默认目标
 all: $K/kernel
