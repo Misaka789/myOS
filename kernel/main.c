@@ -15,17 +15,17 @@
 
 extern char edata[], end[];
 
-// 简单的内存清零函数
-void *memset(void *dst, int c, uint n)
-{
-    char *cdst = (char *)dst;
-    int i;
-    for (i = 0; i < n; i++)
-    {
-        cdst[i] = c;
-    }
-    return dst;
-}
+// // 简单的内存清零函数
+// void *memset(void *dst, int c, uint n)
+// {
+//     char *cdst = (char *)dst;
+//     int i;
+//     for (i = 0; i < n; i++)
+//     {
+//         cdst[i] = c;
+//     }
+//     return dst;
+// }
 
 static inline uint64 r_mip()
 {
@@ -81,10 +81,14 @@ void main()
 
     // clockintr_test();
     procinit();
+    userinit(); // 创建第一个用户进程
 
-    for (;;)
-    {
-        // 暂时什么都不做，等待中断
-        asm volatile("wfi"); // Wait For Interrupt
-    }
+    scheduler(); // 让主 CPU 核心进入调度器，永不返回
+    // process_creation_test();
+
+    // for (;;)
+    // {
+    //     // 暂时什么都不做，等待中断
+    //     asm volatile("wfi"); // Wait For Interrupt
+    // }
 }

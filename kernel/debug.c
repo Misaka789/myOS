@@ -1,6 +1,8 @@
 #include "riscv.h"
 #include "defs.h"
 #include "types.h"
+#include "param.h"
+#include "proc.h"
 
 void print_scause()
 {
@@ -139,7 +141,7 @@ void pagetable_test_enhanced(void)
 
     // 2. 基本单页映射
     uint64 va = 0x01000000; // 16MB 对齐
-    uint64 pa = (uint64)alloc_page();
+    uint64 pa = (uint64)kalloc();
     assert((va & (PGSIZE - 1)) == 0 && (pa & (PGSIZE - 1)) == 0);
     assert(map_page(pt, va, pa, PTE_R | PTE_W) == 0);
 
@@ -152,6 +154,7 @@ void pagetable_test_enhanced(void)
     // 3. 重复映射应失败
     assert(map_page(pt, va, pa, PTE_R | PTE_W) != 0);
     printf("[OK ] duplicate mapping rejected\n");
+    uvmunmap(pt, va, 1, 0); // 先解除映射，准备后续测试
 
     // 4. 未映射地址查询
     uint64 va2 = va + 0x2000; // 没有建立映射
@@ -176,6 +179,8 @@ void pagetable_test_enhanced(void)
     assert(PTE2PA(*pteA) == (uint64)pA);
     assert(PTE2PA(*pteB) == ((uint64)pA + PGSIZE)); // 若失败，说明物理不连续
     printf("[OK ] range mapping 2 pages\n");
+    // 还原映射 方便后续页表销毁
+    uvmunmap(pt, va_range, 2, 1);
 
     // 7. 中间页表未被多余创建：尝试查询一个远地址，walk_lookup 不应分配
     uint64 far_va = 0x4000000000ULL; // 超出 Sv39 (1<<39) → 直接 0
@@ -188,10 +193,6 @@ void pagetable_test_enhanced(void)
 
     // 释放（注意：destroy_pagetable 只应释放页表页，不释放 pA/pB/pa 指代的数据页）
     destory_pagetable(pt);
-    free_page((void *)pa);
-    free_page(pA);
-    free_page(pB);
-
     printf("[TEST] pagetable_test OK\n");
 }
 volatile int test_flag = 0; // 用于测试中断处理函数是否被调用
@@ -211,4 +212,22 @@ void clockintr_test()
     uint64 end = r_time();
     printf("[Test] clockintr_test end, interrupts=%d, time elapsed=%d ticks\n", test_flag, end - start);
     test_flag = 0;
+}
+
+void process_creation_test(void)
+{
+    printf("[Test] process_creation_test begin\n");
+    int pid = fork();
+    assert(pid > 0);
+    int pids[NPROC];
+    for (int i = 0; i < NPROC; i++)
+    {
+        pids[i] = fork();
+        assert(pids[i] > 0);
+    }
+    for (int i = 0; i < NPROC; i++)
+    {
+        wait(0);
+    }
+    printf("[Test] process_creation_test end\n");
 }

@@ -30,5 +30,11 @@
 #define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart) * 0x100)      // 每个 hart 的使能寄存器
 #define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart) * 0x2000) // 每个 hart 的优先级阈值寄存器
 #define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart) * 0x2000)    // 每个 hart 的中断请求寄存器
+#define PTE_FLAGS(pte) ((pte) & 0x3FF)                           // 低10位为标志位
+#define MAXVA (1L << 38)                                         // one beyond the highest possible virtual address
+
+#define TRAMPOLINE (MAXVA - PGSIZE)                         // trampoline 映射位置
+#define TRAPFRAME (TRAMPOLINE - PGSIZE)                     // trapframe 映射位置
+#define KSTACK(proc) (TRAMPOLINE - (proc + 1) * 2 * PGSIZE) // 内核栈位置
 
 #endif

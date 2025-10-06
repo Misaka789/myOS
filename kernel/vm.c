@@ -3,6 +3,7 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "defs.h"
+#include "proc.h"
 
 // 基本类型（Sv39 三层页表）
 // typedef uint64 pte_t;
@@ -31,6 +32,10 @@
 // 对外导出的内核页表
 pagetable_t kernel_pagetable = 0;
 
+// 释放组成页表树的那些物理页
+// 在调用 这个函数之前所有的映射已经被 uvmunmap 解除
+// 也就是说所有的叶子节点都已经被清除
+// 该函数递归地释放所有页表页
 static void freewalk(pagetable_t pt)
 {
     for (int i = 0; i < 512; i++)
@@ -38,13 +43,17 @@ static void freewalk(pagetable_t pt)
         pte_t pte = pt[i];
         if ((pte & PTE_V) == 0)
             continue;
-
+        // 页表项 pte 中存储的是下一级页表的物理地址
         // 如果不是叶子（没有 R/W/X），它指向下一层页表
         if ((pte & (PTE_R | PTE_W | PTE_X)) == 0)
         {
             pagetable_t child = (pagetable_t)PTE2PA(pte);
             freewalk(child);
             pt[i] = 0;
+        }
+        else if (pte & PTE_V)
+        {
+            panic("freewalk: leaf");
         }
         // 叶子：不释放（数据页/设备页），由其它逻辑负责
     }
@@ -82,15 +91,17 @@ static pte_t *walk(pagetable_t pt, uint64 va, int alloc)
         return 0; // Sv39 VA 范围保护
     for (int level = 2; level > 0; level--)
     {
+        // PX 为取对应级别索引的宏
         pte_t *pte = &pt[PX(level, va)];
-        if (*pte & PTE_V)
+        if (*pte & PTE_V) // 页表项有效
         {
             pt = (pagetable_t)PTE2PA(*pte);
         }
-        else
+        else // 页表项无效 也就是缺页
         {
             if (!alloc)
                 return 0;
+            // 设置了 alloc 参数，分配物理页
             void *newpg = kalloc();
             if (!newpg)
                 return 0;
@@ -99,12 +110,13 @@ static pte_t *walk(pagetable_t pt, uint64 va, int alloc)
             pt = (pagetable_t)newpg;
         }
     }
+    // 返回 L0 页表项的地址
     return &pt[PX(0, va)];
 }
 
 // 创建（若缺页表则分配）
 pte_t *walk_create(pagetable_t pt, uint64 va) { return walk(pt, va, 1); }
-// 查找（不分配）
+// 查找（不分配）返回 L0 的页表项
 pte_t *walk_lookup(pagetable_t pt, uint64 va)
 {
     pte_t *pte = walk(pt, va, 0);
@@ -116,6 +128,7 @@ pte_t *walk_lookup(pagetable_t pt, uint64 va)
 }
 
 // 在页表中建立 [va, va+sz) -> [pa, pa+sz) 的映射（逐页）
+// 参数 perm 为权限，由多个位组合而成
 int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm)
 {
     if (size == 0)
@@ -127,6 +140,9 @@ int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm)
     // panic("mappages: not aligned");
     uint64 a = PGROUNDDOWN(va);
     uint64 last = PGROUNDDOWN(va + size - 1);
+    // 使用 PGROUNDDOWN 向下取整， 从包含 va 的页开始映射
+    // 映射到包含 va+size-1 的页为止
+    // 注意 size 可能不是 PGSIZE 的整数倍
     for (;;)
     {
         pte_t *pte = walk(pt, a, 1);
@@ -144,7 +160,7 @@ int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm)
 }
 
 // 便捷：内核映射（大小按字节）
-static void kvmmap(pagetable_t pt, uint64 va, uint64 pa, uint64 sz, int perm)
+void kvmmap(pagetable_t pt, uint64 va, uint64 pa, uint64 sz, int perm)
 {
     if (mappages(pt, va, sz, pa, perm) != 0)
         panic("kvmmap");
@@ -215,4 +231,273 @@ uint64 walkaddr(pagetable_t pt, uint64 va)
         return 0;
     uint64 pa = PTE2PA(*pte);
     return pa | (va & (PGSIZE - 1));
+}
+
+// pagetable_t proc_pagetable(struct proc *p)
+// {
+//     // return (uint64)p->pagetable;
+//     pagetable_t pagetable = create_pagetable();
+//     if (pagetable == 0)
+//         return 0;
+
+// }
+
+pagetable_t uvmcreate() // 为用户进程创建空页表
+{
+    pagetable_t pagetable = (pagetable_t)kalloc();
+    if (pagetable == 0)
+        return 0;
+    memset(pagetable, 0, PGSIZE);
+    return pagetable;
+}
+
+uint64 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
+{ // 为用户进程分配内存 oldsz 表示旧大小，newsz 表示新大小
+    char *mem;
+    uint64 a;
+
+    if (newsz < oldsz)
+        return oldsz;
+
+    oldsz = PGROUNDUP(oldsz); // 向上取整到页边界
+    for (a = oldsz; a < newsz; a += PGSIZE)
+    {
+        mem = kalloc();
+        if (mem == 0) // 分配失败，回滚
+        {
+            uvmdealloc(pagetable, a, oldsz);
+            return 0;
+        }
+        memset(mem, 0, PGSIZE);
+        if (mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R | PTE_U | xperm) != 0)
+        {
+            kfree(mem);
+            uvmdealloc(pagetable, a, oldsz);
+            return 0;
+        }
+    }
+    return newsz;
+}
+
+void uvmfree(pagetable_t pagetable, uint64 sz)
+{ // 释放用户内存
+    if (sz > 0)
+        uvmunmap(pagetable, 0, PGROUNDUP(sz) / PGSIZE, 1);
+    freewalk(pagetable);
+}
+
+uint64 uvmdeadlloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
+{ // 释放用户内存，oldsz 表示旧大小，newsz 表示新大小
+    if (newsz >= oldsz)
+        return oldsz;
+
+    if (PGROUNDUP(newsz) < PGROUNDUP(oldsz))
+    {
+        uint64 a = PGROUNDUP(newsz);
+        uvmunmap(pagetable, a, (PGROUNDUP(oldsz) - a) / PGSIZE, 1);
+    }
+    return newsz;
+}
+
+void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
+{ // 解除映射
+    uint64 a;
+    pte_t *pte;
+
+    if ((va % PGSIZE) != 0)
+        panic("uvmunmap: not aligned");
+
+    for (a = va; a < va + npages * PGSIZE; a += PGSIZE)
+    {
+        if ((pte = walk_lookup(pagetable, a)) == 0)
+            panic("uvmunmap: walk_lookup failed");
+        if ((*pte & PTE_V) == 0)
+            panic("uvmunmap: not mapped");
+        if (PTE_FLAGS(*pte) == PTE_V)
+            panic("uvmunmap: not a leaf");
+        if (do_free)
+        {
+            uint64 pa = PTE2PA(*pte);
+            kfree((void *)pa);
+        }
+        *pte = 0;
+    }
+}
+
+int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
+{ // 从用户空间拷贝数据到内核空间
+    uint64 n, va0, pa0;
+    // pte_t *pte;
+
+    while (len > 0)
+    {
+        va0 = PGROUNDDOWN(srcva);
+        if (va0 >= MAXVA)
+            return -1;
+        //  walkaddr 函数返回物理地址 并且检查有效位
+        pa0 = walkaddr(pagetable, va0);
+        if (pa0 == 0)
+            return -1;
+
+        // 没有对齐的那部分的数据
+        // n = va0 + PGSIZE - srcva;
+        n = PGSIZE - (srcva - va0);
+        if (n > len) // 判断来保证不会发生跨页
+            n = len;
+
+        memmove(dst, (char *)(pa0 + (srcva - va0)), n);
+
+        len -= n;
+        dst += n;
+        srcva = va0 + PGSIZE;
+    }
+    return 0;
+}
+
+int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
+{ // 从内核空间拷贝数据到用户空间
+    uint64 n, va0, pa0;
+    // pte_t *pte;
+
+    while (len > 0)
+    {
+        va0 = PGROUNDDOWN(dstva);
+        if (va0 >= MAXVA)
+            return -1;
+
+        pa0 = walkaddr(pagetable, va0);
+        if (pa0 == 0)
+            return -1;
+
+        n = PGSIZE - (dstva - va0);
+        if (n > len)
+            n = len;
+        memmove((void *)(pa0 + (dstva - va0)), src, n);
+
+        len -= n;
+        src += n;
+        dstva = va0 + PGSIZE;
+    }
+    return 0;
+}
+
+int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
+{ // 从用户空间拷贝字符串到内核空间
+    uint64 n, va0, pa0;
+    int got_null = 0;
+
+    while (got_null == 0 && max > 0)
+    {
+        va0 = PGROUNDDOWN(srcva);
+        pa0 = walkaddr(pagetable, va0);
+        if (pa0 == 0)
+            return -1;
+        n = PGSIZE - (srcva - va0);
+        if (n > max)
+            n = max;
+        // 这里 n 最大为当前页的剩余字节数
+        char *p = (char *)(pa0 + (srcva - va0));
+        while (n > 0) // 逐字节复制
+        {
+            if (*p == '\0')
+            {
+                *dst = '\0';
+                got_null = 1;
+                break;
+            }
+            else
+            {
+                *dst = *p;
+            }
+            --n;
+            --max;
+            p++;
+            dst++;
+        }
+
+        srcva = va0 + PGSIZE;
+    }
+    if (got_null)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+// 处理缺页错误的函数 返回0 表示地址越界 失败或者已经映射
+// 成功返回分配的物理地址
+uint64 vmfault(pagetable_t pagetable, uint64 va, int read)
+{
+    uint64 ka;
+    struct proc *p = myproc();
+    ka = 0;
+
+    if (va >= p->sz)
+        return 0;
+    va = PGROUNDDOWN(va);
+    if (ismapped(pagetable, va))
+    {
+        return 0;
+    }
+    ka = (uint64)kalloc();
+    if (ka == 0)
+        return 0;
+    memset((void *)ka, 0, PGSIZE);
+    if (mappages(p->pagetable, va, PGSIZE, ka, PTE_W | PTE_U | PTE_R) != 0)
+    {
+        kfree((void *)ka);
+        return 0;
+    }
+    return ka;
+}
+
+// 返回 0 表示没有映射，1 表示已映射
+int ismapped(pagetable_t pagetable, uint64 va)
+{
+    pte_t *pte = walk(pagetable, va, 0);
+    if (pte == 0)
+        return 0;
+    if (*pte & PTE_V)
+    {
+        return 1; // 表示已映射
+    }
+    return 0;
+}
+
+uint64 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
+{ // 释放用户内存，oldsz 表示旧大小，newsz 表示新大小
+    if (newsz >= oldsz)
+        return oldsz;
+
+    if (PGROUNDUP(newsz) < PGROUNDUP(oldsz))
+    {
+        uint64 a = PGROUNDUP(newsz);
+        uvmunmap(pagetable, a, (PGROUNDUP(oldsz) - a) / PGSIZE, 1);
+    }
+    return newsz;
+}
+
+int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+{ // 复制用户内存
+    pte_t *pte;
+    uint64 pa, i;
+    uint flags;
+    for (i = 0; i < sz; i += PGSIZE)
+    {
+        if ((pte = walk(old, i, 0)) == 0)
+            panic("uvmcopy: pte should exist");
+        if ((*pte & PTE_V) == 0)
+            panic("uvmcopy: page not present");
+        pa = PTE2PA(*pte);
+        flags = PTE_FLAGS(*pte);
+        if (mappages(new, i, PGSIZE, pa, flags) < 0)
+        {
+            uvmunmap(new, 0, i / PGSIZE, 1);
+            return -1;
+        }
+    }
+    return 0;
 }

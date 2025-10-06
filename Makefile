@@ -12,6 +12,7 @@ CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I./include
+CFLAGS += -I./user
 CFLAGS += -fno-stack-protector
 
 #目录设置
@@ -41,7 +42,11 @@ OBJS = \
   $K/debug.o \
   $K/main.o \
   $K/plic.o \
-  $K/proc.o 
+  $K/proc.o \
+  $K/trampoline.o \
+  $K/swtch.o \
+  $K/string.o \
+  $K/first_proc.o
 
 # 默认目标
 all: $K/kernel

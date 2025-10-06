@@ -4,6 +4,7 @@
 
 #include "types.h"
 #include "spinlock.h"
+#include "proc.h"
 
 // 符号声明
 extern char etext[], edata[], end[], sbss[]; // 链接器符号
@@ -48,7 +49,6 @@ void kfree(void *page); // 释放单个页面
 
 // main.c
 void main(void);
-void *memset(void *dst, int c, uint n);
 
 // spinlock.c
 void acquire(struct spinlock *);
@@ -66,10 +66,24 @@ pte_t *walk_lookup(pagetable_t pt, uint64 va);
 void kvminit(void);
 void kvminithart(void);
 uint64 kvmpa(uint64 va);
+void kvmmap(pagetable_t pt, uint64 va, uint64 pa, uint64 sz, int perm);
 uint64 walkaddr(pagetable_t pt, uint64 va);
 int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm);
 extern pagetable_t kernel_pagetable;
 // void freewalk(pagetable_t pt);
+// uint64 proc_pagetable(struct proc *p);
+pagetable_t uvmcreate();
+uint64 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int perm);
+uint64 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz);
+int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz);
+void uvmclear(pagetable_t pagetable, uint64 va);
+void uvmfree(pagetable_t pagetable, uint64 sz);
+int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len);
+uint64 vmfault(pagetable_t pagetable, uint64 va, int read);
+int ismapped(pagetable_t pagetable, uint64 va);
+int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len);
+int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len);
+void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free);
 
 // timer.c
 void timer_set_next();
@@ -94,6 +108,8 @@ void pagetable_test();
 void pagetable_test_enhanced();
 void virtual_memory_test();
 void clockintr_test();
+void process_creation_test();
+void fork_test_main();
 
 // plic.c
 void plicinit(void);
@@ -107,5 +123,31 @@ void plic_disable(int irq);
 void procinit(void);
 struct cpu *mycpu(void);
 uint64 cpuid(void);
+struct proc *myproc(void);
+int fork(void);
+void exit(void);
+int wait(uint64 addr);
+void yield(void);
+void sleep(void *chan, struct spinlock *lk);
+void wakeup(void *chan);
+int kill(int pid);
+void setkilled(struct proc *p);
+int killed(struct proc *p);
+void sched(void);
+void scheduler(void);
+void procdump(void);
+void reparent(struct proc *p);
+void userinit(void);
+
+// string.c
+void *memset(void *dst, int c, uint n);
+void *memmove(void *dst, const void *src, uint n);
+char *safestrcpy(char *dst, const char *src, int n);
+
+// swtch.S
+void swtch(struct context *, struct context *);
+
+// trampoline.S
+void trampoline();
 
 #endif
