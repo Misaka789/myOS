@@ -19,7 +19,7 @@ enum procstate
 
 // 保存 swtch 切换时的上下文
 // swtch 只保存和恢复被调用者保存的寄存器 (callee-saved registers)
-struct context
+struct context // 用于内核态中进程的切换
 {
     uint64 ra; // 返回地址
     uint64 sp; // 栈指针
@@ -39,13 +39,13 @@ struct context
     uint64 s11;
 };
 
-struct trapframe
+struct trapframe // 用于内核态和用户态的切换
 {
-    /*   0 */ uint64 kernel_satp;   // kernel page table
-    /*   8 */ uint64 kernel_sp;     // top of process's kernel stack
+    /*   0 */ uint64 kernel_satp;   // 内核页表
+    /*   8 */ uint64 kernel_sp;     // 进程内核栈顶部
     /*  16 */ uint64 kernel_trap;   // usertrap()
-    /*  24 */ uint64 epc;           // saved user program counter
-    /*  32 */ uint64 kernel_hartid; // saved kernel tp
+    /*  24 */ uint64 epc;           // 保存的用户程序计数器
+    /*  32 */ uint64 kernel_hartid; // 保存的内核 hartid
     /*  40 */ uint64 ra;
     /*  48 */ uint64 sp;
     /*  56 */ uint64 gp;

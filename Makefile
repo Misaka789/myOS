@@ -45,7 +45,9 @@ OBJS = \
   $K/proc.o \
   $K/trampoline.o \
   $K/swtch.o \
-  $K/string.o 
+  $K/string.o \
+  $K/syscall.o \
+  $K/sysproc.o
 
 # 默认目标
 all: $K/kernel

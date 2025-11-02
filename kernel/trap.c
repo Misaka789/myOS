@@ -3,6 +3,7 @@
 #include "types.h"
 #include "riscv.h"
 #include "defs.h"
+#include "memlayout.h"
 
 volatile uint64 ticks;
 struct spinlock tickslock;
@@ -18,6 +19,7 @@ struct spinlock irq_lock;
 extern void
 timer_set_next();
 extern void kernelvec();
+extern char trampoline[], uservec[];
 
 void trapinit()
 {
@@ -157,4 +159,84 @@ void kerneltrap()
     }
     // printf("trap: scause=%p sepc=%p stval=%p", sc, r_sepc(), r_stval());
     // panic("trap");
+}
+
+uint64 usertrap(void)
+{
+    int which_dev = 0;
+    if ((r_sstatus() & SSTATUS_SPP) != 0)
+        panic("usertrap : not frome user mode");
+    w_stvec((uint64)kernelvec);
+    struct proc *p = myproc();
+    p->trapframe->epc = r_sepc();
+    if (r_scause() == 8)
+    {
+        // 说明是系统调用
+        if (p->killed)
+            exit(-1);
+        p->trapframe->epc += 4;
+        intr_on();
+        syscall();
+    }
+    else if ((r_scause() == 15 || r_scause() == 13) &&
+             vmfault(p->pagetable, r_stval(), (r_scause() == 13) ? 1 : 0) != 0)
+    {
+        // page fault on lazily-allocated page
+    }
+    else
+    {
+        printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+        printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+        setkilled(p);
+    }
+
+    if (killed(p))
+        exit(-1);
+
+    // give up the CPU if this is a timer interrupt.
+    if (which_dev == 2)
+        yield();
+
+    prepare_return();
+
+    // the user page table to switch to, for trampoline.S
+    uint64 satp = MAKE_SATP(p->pagetable);
+
+    // return to trampoline.S; satp value in a0.
+    return satp;
+}
+
+// 从内核态返回用户态的准备工作
+void prepare_return(void)
+{
+    struct proc *p = myproc();
+
+    // we're about to switch the destination of traps from
+    // kerneltrap() to usertrap(). because a trap from kernel
+    // code to usertrap would be a disaster, turn off interrupts.
+    intr_off();
+
+    // send syscalls, interrupts, and exceptions to uservec in trampoline.S
+
+    uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);
+    // 设置陷阱向量为 uservec ，从这里开始陷阱进入 uservec 来处理
+    w_stvec(trampoline_uservec);
+
+    // 在 当前进程的 trapframe 中保存必要的信息，方便下次陷入时候使用
+    p->trapframe->kernel_satp = r_satp();         // 内核太页表
+    p->trapframe->kernel_sp = p->kstack + PGSIZE; // 进程的栈空间
+    p->trapframe->kernel_trap = (uint64)usertrap;
+    p->trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
+
+    // set up the registers that trampoline.S's sret will use
+    // to get to user space.
+
+    // set S Previous Privilege mode to User.
+    unsigned long x = r_sstatus();
+    x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
+    x |= SSTATUS_SPIE; // enable interrupts in user mode
+    w_sstatus(x);
+
+    // set S Exception Program Counter to the saved user pc.
+    w_sepc(p->trapframe->epc);
 }

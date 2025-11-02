@@ -193,6 +193,7 @@ void pagetable_test_enhanced(void)
 
     // 释放（注意：destroy_pagetable 只应释放页表页，不释放 pA/pB/pa 指代的数据页）
     destory_pagetable(pt);
+    // free_page(pA);
     printf("[TEST] pagetable_test OK\n");
 }
 volatile int test_flag = 0; // 用于测试中断处理函数是否被调用

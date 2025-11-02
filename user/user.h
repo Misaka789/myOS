@@ -13,3 +13,5 @@
 // int write(int fd, const void *buf, int n);
 // int unlink(const char *path);
 // int exec(const char *path, char *const argv[]);
+
+int hello(void); // 用于为用户提供调用的接口

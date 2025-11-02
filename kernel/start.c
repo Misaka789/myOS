@@ -6,16 +6,6 @@
 #include "memlayout.h"
 #include "riscv.h"
 
-#ifndef MSTATUS_MPIE
-#define MSTATUS_MPIE (1L << 7) // machine previous interrupt enable
-
-#endif
-
-#ifndef MIE_MTIE
-#define MIE_MTIE (1L << 7) // machine timer interrupt enable
-
-#endif
-
 // 每个CPU的启动栈，在entry.S中使用
 __attribute__((aligned(16))) char stack0[4096 * NCPU];
 

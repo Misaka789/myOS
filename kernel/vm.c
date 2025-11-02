@@ -24,11 +24,6 @@
 // #define PTE2PA(pte) (((pte) >> 10) << 12)
 // #define PA2PTE(pa) ((((uint64)(pa)) >> 12) << 10)
 
-#ifndef SATP_SV39
-#define SATP_SV39 (8ULL << 60)
-#endif
-#define MAKE_SATP(pgtbl) (SATP_SV39 | (((uint64)(pgtbl)) >> 12))
-
 // 对外导出的内核页表
 pagetable_t kernel_pagetable = 0;
 
@@ -51,7 +46,7 @@ static void freewalk(pagetable_t pt)
             freewalk(child);
             pt[i] = 0;
         }
-        else if (pte & PTE_V)
+        else if (pte & PTE_V) // 如果是叶子结点
         {
             panic("freewalk: leaf");
         }
@@ -207,6 +202,8 @@ void kvminithart(void)
 {
     if (!kernel_pagetable)
         panic("kvminithart: no kernel_pagetable");
+    // printf(" 114514 kernel pagetable :%p \n",(uint64)kernel_pagetable);
+    printf("make satp : %p\n", MAKE_SATP(kernel_pagetable));
     w_satp(MAKE_SATP(kernel_pagetable));
     sfence_vma();
 }

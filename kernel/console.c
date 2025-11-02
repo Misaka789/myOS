@@ -38,6 +38,7 @@ void consputc(int c)
     extern void uartputc(int c);
     uartputc(c);
 }
+
 void sync_flush(void)
 {
     console_flush(); // 刷新输出缓冲区

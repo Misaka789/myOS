@@ -10,14 +10,15 @@ trampoline:
 # 1. `stvec` 指向这里。
 # 2. `sscratch` 寄存器中保存着当前进程陷阱帧 (trapframe) 的地址。
 #
-uservec:
+uservec:  // 这里已经是S 模式了，但是 sp 指针仍然指向用户栈
     # 交换 sp 和 sscratch。
     # 此时，sp 指向了当前进程的陷阱帧 (trapframe) 的顶部。
     # sscratch 中保存了用户的 sp。
-    csrrw sp, sscratch, sp
+    csrrw sp, sscratch, sp  # 交换 sscratch sp 寄存器的值
+    # 这里前提是在准备运行一个用户进程的时候，会提前将 进程的trapframe 的地址存到 sscratch 
 
-    # 保存所有通用寄存器到陷阱帧中。
-    # sp 已经被硬件保存，ra 在下面保存。
+    # 现在 sp 指向的是当前进程的 trapframe 结构体
+    # 保存所有通用寄存器到 trapframe
     sd ra, 40(sp)
     sd gp, 48(sp)
     sd tp, 56(sp)
@@ -49,7 +50,7 @@ uservec:
     sd t5, 264(sp)
     sd t6, 272(sp)
 
-    # 保存用户的 sp
+    # 保存用户的 sp sscratch -> t0
     csrr t0, sscratch
     sd t0, 32(sp)
 

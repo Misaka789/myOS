@@ -37,6 +37,11 @@
 #define PX(level, va) ((((uint64)(va)) >> PXSHIFT(level)) & PXMASK)
 #endif
 
+#ifndef SATP_SV39
+#define SATP_SV39 (8ULL << 60)
+#endif
+#define MAKE_SATP(pgtbl) (SATP_SV39 | (((uint64)(pgtbl)) >> 12))
+
 // 读取 mhartid CSR (machine hart ID)
 
 static inline uint64
@@ -83,6 +88,12 @@ w_mstatus(uint64 x)
 #define MSTATUS_MPP_S (1L << 11)    // 监管者模式
 #define MSTATUS_MIE (1L << 3)       // 机器中断使能
 #define MSTATUS_MPIE (1L << 7)      // 机器中断使能位的前一个值
+
+#define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
+#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
+#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
+#define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
+#define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
 
 // 读取机器中断使能寄存器 mie
 static inline uint64
@@ -182,7 +193,7 @@ static inline uint64 r_stvec()
   asm volatile("csrr %0, stvec" : "=r"(x));
   return x;
 }
-#define SSTATUS_SIE (1 << 1)
+// #define SSTATUS_SIE (1 << 1)
 static inline void intr_on() { w_sstatus(r_sstatus() | SSTATUS_SIE); }
 static inline void intr_off() { w_sstatus(r_sstatus() & ~SSTATUS_SIE); }
 static inline int
@@ -225,7 +236,4 @@ static inline uint64 r_mcounteren()
   asm volatile("csrr %0, mcounteren" : "=r"(x));
   return x;
 }
-#ifndef SSTATUS_SIE
-#define SSTATUS_SIE (1 << 1)
-#endif
 #endif

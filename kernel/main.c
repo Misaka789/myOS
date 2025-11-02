@@ -66,6 +66,9 @@ void main()
 
     virtual_memory_test();
 
+    kvminit();
+    kvminithart(); // 切换到内核页表
+
     // debug_poll_timer();
 
     trapinit(); // 初始化陷阱处理

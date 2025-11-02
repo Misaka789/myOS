@@ -125,7 +125,7 @@ struct cpu *mycpu(void);
 uint64 cpuid(void);
 struct proc *myproc(void);
 int fork(void);
-void exit(void);
+void exit(int);
 int wait(uint64 addr);
 void yield(void);
 void sleep(void *chan, struct spinlock *lk);
@@ -138,6 +138,7 @@ void scheduler(void);
 void procdump(void);
 void reparent(struct proc *p);
 void userinit(void);
+int shrinkproc(int);
 
 // string.c
 void *memset(void *dst, int c, uint n);
@@ -148,6 +149,17 @@ char *safestrcpy(char *dst, const char *src, int n);
 void swtch(struct context *, struct context *);
 
 // trampoline.S
-void trampoline();
+// void trampoline();
+
+// syscall.c
+void argint(int, int *);
+int argstr(int, char *, int);
+void argaddr(int, uint64 *);
+int fetchstr(uint64, char *, int);
+int fetchaddr(uint64, uint64 *);
+void syscall();
+
+#define NELEM(x) (sizeof(x) / sizeof((x)[0]))
+void prepare_return(void);
 
 #endif
