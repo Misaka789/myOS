@@ -31,6 +31,8 @@ pagetable_t kernel_pagetable = 0;
 // 在调用 这个函数之前所有的映射已经被 uvmunmap 解除
 // 也就是说所有的叶子节点都已经被清除
 // 该函数递归地释放所有页表页
+
+extern char trampoline[]; // trampoline.S
 static void freewalk(pagetable_t pt)
 {
     for (int i = 0; i < 512; i++)
@@ -126,6 +128,8 @@ pte_t *walk_lookup(pagetable_t pt, uint64 va)
 // 参数 perm 为权限，由多个位组合而成
 int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm)
 {
+    printf("[mappages]: enter fucntion \n");
+    printf("[mappages]: argument pt = %p,va = %p,size = %d,pa = %p,perm = %d \n", pt, va, size, pa, perm);
     if (size == 0)
         return 0;
     if (va + size - 1 < va)
@@ -188,6 +192,11 @@ static pagetable_t kvmmake(void)
     // 代码段之后到 PHYSTOP: 可读写（含数据/BSS、堆、页框等）
     kvmmap(kpgtbl, (uint64)etext, (uint64)etext, (uint64)PHYSTOP - (uint64)etext, PTE_R | PTE_W);
 
+    kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+
+    extern void proc_mapstacks(pagetable_t kpgtbl);
+    proc_mapstacks(kpgtbl);
+
     return kpgtbl;
 }
 
@@ -242,9 +251,11 @@ uint64 walkaddr(pagetable_t pt, uint64 va)
 pagetable_t uvmcreate() // 为用户进程创建空页表
 {
     pagetable_t pagetable = (pagetable_t)kalloc();
+    printf("[uvmcreate]: pagetable = %p \n", pagetable);
     if (pagetable == 0)
         return 0;
     memset(pagetable, 0, PGSIZE);
+    printf("[uvmcreate]: before return pagetable = %p \n", pagetable);
     return pagetable;
 }
 

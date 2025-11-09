@@ -1,4 +1,5 @@
 #include "types.h"
+#include "defs.h"
 void *memset(void *dst, int c, uint n)
 {
     char *cdst = (char *)dst;
@@ -33,13 +34,16 @@ void *memmove(void *dst, const void *src, uint n)
     return dst;
 }
 
-char *safestrcpy(char *dst, const char *src, int n)
+char *safestrcpy(char *s, const char *t, int n)
 {
-    char *os = dst;
+    printf("[safestrcpy]: enter function \n");
+    printf("[safestrcpy]: argument s = %p,t = %p,n = %d \n", s, t, n);
+    char *os = s;
     if (n <= 0)
-        return dst;
-    while (--n > 0 && (*dst++ = *src++) != 0)
+        return os;
+    while (--n > 0 && (*s++ = *t++) != 0)
         ;
-    *dst = 0;
+    *s = 0;
+    printf("[safestrcpy]: exit function \n");
     return os;
 }

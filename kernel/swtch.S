@@ -5,6 +5,10 @@
 // a1: new context
 swtch:
     // 保存旧的上下文 (callee-saved registers)
+
+      li t0,0x10000000
+      li t1 , 'S'
+      sb t1 ,0(t0)
     sd ra, 0(a0)
     sd sp, 8(a0)
     sd s0, 16(a0)
@@ -35,5 +39,8 @@ swtch:
     ld s9, 88(a1)
     ld s10, 96(a1)
     ld s11, 104(a1)
+      li t0,0x10000000
+      li t1 , 'W'
+      sb t1 ,0(t0)
 
     ret // 返回到新的上下文中 ra 指向的地址

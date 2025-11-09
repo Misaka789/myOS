@@ -100,7 +100,7 @@ struct proc
     int killed;           // 如果非零，表示进程已被标记为杀死
     int xstate;           // 退出状态，由父进程读取
     int pid;              // 进程 ID
-    char *name;           // 进程名 (debugging)
+    char name[16];        // 进程名 (debugging)
     char *cwd;            // 当前工作目录
     // wait_lock 必须持有时才能修改的字段
     struct proc *parent; // 父进程

@@ -215,20 +215,117 @@ void clockintr_test()
     test_flag = 0;
 }
 
-void process_creation_test(void)
+void simple_task(void)
 {
-    printf("[Test] process_creation_test begin\n");
-    int pid = fork();
-    assert(pid > 0);
-    int pids[NPROC];
-    for (int i = 0; i < NPROC; i++)
+    printf("[simple_task]: simple_task started in pid %d\n", myproc()->pid);
+    struct proc *p = myproc();
+    release(&p->lock);
+
+    // A kernel thread cannot simply return. It must properly exit.
+    acquire(&p->lock);
+    printf("[simple_task]: pid %d: simple_task running and exiting.\n", p->pid);
+    p->state = ZOMBIE;
+
+    // Wake up the parent who might be in wait_process().
+    // The real exit() syscall does this.
+    if (p->parent)
     {
-        pids[i] = fork();
-        assert(pids[i] > 0);
+        // acquire(&p->parent->lock); 这里不应该获取锁
+        printf("[simple_task]: pid %d: waking up parent pid %d\n", p->pid, p->parent->pid);
+        wakeup(p->parent);
+        // release(&p->parent->lock);
     }
-    for (int i = 0; i < NPROC; i++)
-    {
-        wait(0);
-    }
-    printf("[Test] process_creation_test end\n");
+
+    // The scheduler will never choose this process again.
+    // It waits to be freed by the parent.
+    // We must not release the lock before calling sched().
+    sched();
+
+    // sched() should not return.
+    panic("zombie exit");
 }
+
+// The main test function, as per your image.
+void test_process_creation(void)
+{
+    printf("[test_process_creation]: enter function\n");
+
+    // Test 1: Basic process creation
+    printf("[test_process_creation]: Testing basic creation...\n");
+    int pid = create_process(simple_task);
+    printf("[test_process_creation]: pid = %d \n", pid);
+    if (pid <= 0)
+        panic("test_process_creation: basic create failed");
+    printf("[test_process_creation]: Basic creation OK.\n");
+
+    // Test 2: Process table limit
+    printf("[test_process_creation]: Testing process table limit...\n");
+    // int pids[NPROC];
+    int count = 1;
+    for (int i = 1; i < NPROC - 1; i++)
+    {
+        pid = create_process(simple_task);
+        if (pid > 0)
+        {
+            // pids[count++] = pid;
+            count++;
+        }
+        else
+        {
+            // This is expected when the process table is full.
+
+            break;
+        }
+    }
+    printf("[test_process_creation]: created %d processes \n", count);
+
+    // procdump();
+    //  We should have filled up the table, minus the 'main' proc and the first test proc.
+    //  Test 3: Cleanup test processes
+    //  Wait for the first basic process
+    //  wait_process();
+    //  Wait for the processes from the limit test
+    // printf("[rest_process_creation]:  current process, pid = %d \n", myproc()->pid);
+
+    // for (int i = 1; i < count; i++)
+    // {
+    //     printf("[test_process_creation]:  enter wait loop \n");
+    //     wait_process();
+    // }
+    // procdump();
+    // printf("[test_process_creation]: Cleanup OK.\n");
+
+    // printf("[test_process_creation]: Process creation test finished successfully.\n\n");
+    // 因为这里还么有参与调度，所以暂时没有办法释放
+}
+
+// The entry point for all kernel tests.
+void kernel_test_main(void)
+{
+    printf("\n======= KERNEL UNIT TESTS START =======\n\n");
+
+    test_process_creation();
+
+    // You can add more test functions here in the future.
+    // test_another_feature();
+
+    printf("======= KERNEL UNIT TESTS END =======\n\n");
+}
+
+// void process_creation_test(void)
+// {
+//     printf("[Test] process_creation_test begin\n");
+//     int pid = fork();
+//     assert(pid > 0);
+//     int pids[NPROC];
+//     for (int i = 0; i < NPROC; i++)
+//     {
+//         pids[i] = fork();
+//         assert(pids[i] > 0);
+//     }
+//     for (int i = 0; i < NPROC; i++)
+//     {
+//         wait(0);
+//     }
+//     printf("[Test] process_creation_test end\n");
+// }

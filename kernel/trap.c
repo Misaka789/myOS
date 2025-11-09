@@ -98,9 +98,11 @@ static void clockintr() // 定时器中断
 
 void kerneltrap()
 {
+    // panic("[kerneltrap]: total panic e and i \n");
     uint64 sc = r_scause();
     if (sc >> 63) // 最高位为1 说明了是中断
     {             // interrupt
+        panic("[kerneltrap]: interrupt panic \n");
         uint64 code = sc & 0xff;
         switch (code)
         {       // S-timer
@@ -112,7 +114,8 @@ void kerneltrap()
             int irq = plic_claim(); // 从 PLIC 获取中断号
             if (irq < 0 || irq >= MAX_IRQS)
             {
-                printf("kerneltrap: invalid irq %d\n", irq);
+                printf("[kerneltrap]: kerneltrap: invalid irq %d\n", irq);
+                panic("[kerneltrap]");
                 break;
             }
             printf("kerneltrap: irq %d\n", irq);
@@ -135,6 +138,8 @@ void kerneltrap()
     }
     else
     { // 这里处理异常
+        // panic("[kerneltrap]: exception panic \n");
+        printf("[kerneltrap]: enter exception handler \n");
         uint64 code = sc & 0xfff;
         switch (code)
         {
@@ -150,10 +155,12 @@ void kerneltrap()
             printf("page fault at %p, sepc=%p, stval=%p\n", stval, r_sepc(), stval);
             // 这里可以尝试处理缺页异常，比如加载页面等
             // 但目前我们直接 panic
-            panic("page fault");
+            panic("[kerneltrap]: page fault");
             break;
         }
         default:
+            printf("[kerneltrap]: exception id = %d", code);
+            panic("[kerneltrap]: unknow trap \n");
             break;
         }
     }

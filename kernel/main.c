@@ -79,13 +79,21 @@ void main()
     printf("stvec = %p\n", r_stvec());
 
     printf("before intr_on sstatus = %p\n", r_sstatus());
-    intr_on(); // 允许 SIE 中断
+    // intr_on(); // 允许 SIE 中断
     printf("after intr_on sstatus = %p\n", r_sstatus());
 
     // clockintr_test();
     procinit();
     // userinit(); // 创建第一个用户进程
 
+    // 打印进程状态
+    // procdump();
+    // printf("hello world");
+    main_proc_init();
+    procdump();
+    test_process_creation();
+
+    // printf("see you again");
     scheduler(); // 让主 CPU 核心进入调度器，永不返回
     // process_creation_test();
 

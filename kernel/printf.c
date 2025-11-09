@@ -148,7 +148,7 @@ void printf(char *fmt, ...)
 void panic(char *s)
 {
     // 1. 禁用中断，防止进一步的中断处理
-    // intr_off();  // 后续实现中断管理时添加
+    intr_off(); // 后续实现中断管理时添加
 
     // 2. 显示错误信息
     printf("\n");
@@ -157,7 +157,7 @@ void panic(char *s)
     printf("================================\n");
 
     // 3. 显示当前状态信息（调试用）
-    printf("Hart ID: %d\n", (int)r_mhartid());
+    // printf("Hart ID: %d\n", (int)r_mhartid());
     // printf("PC: %p\n", (void*)r_sepc());  // 异常PC
 
     // 4. 显示调用栈（高级功能，后续可添加）

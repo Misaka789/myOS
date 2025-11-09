@@ -17,6 +17,8 @@ void initlock(struct spinlock *lk, char *name)
 void acquire(struct spinlock *lk)
 {
     push_off();      // 关中断防止死锁
+                     // printf("[acquire]: acquiring lock: %s\n", lk->name);
+                     // printf("[acquire]: is holding : %d\n", holding(lk));
     if (holding(lk)) // 不可重入
         panic("acquire");
 

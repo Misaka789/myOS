@@ -15,9 +15,38 @@ struct proc *initproc;
 
 int nextpid = 1; // 全局 id 计数器
 struct spinlock pid_lock;
+// static int get_nextpid()
+// {
+//     int id = 0;
+//     acqurire(&pid_lock);
+//     id = nextpid;
+//     nextpid = nextpid + 1;
+//     release(&pid_lock);
+//     return id;
+// }
 
 extern void forkret(void); // fork 返回时的函数
 static void freeproc(struct proc *p);
+void main_proc(void)
+{
+    printf("[main_proc]: main process started \n");
+    release(&myproc()->lock);
+    for (int i = 1; i < NPROC; i++)
+    {
+        printf("[main_proc]: proc %d state = %d \n", proc[i].pid, proc[i].state);
+        wait_process();
+    }
+    procdump();
+    // exit(0);
+    for (;;)
+    {
+    }
+    // for (;;)
+    // {
+    //     procdump(); // 打印一下所有进程的状态看看
+    //     // yield(); 主进程进程到这里应该就进行无限循环了
+    // }
+}
 
 extern char trampoline[]; // trampoline.S
 
@@ -101,8 +130,9 @@ int allocpid()
     return pid;
 }
 
-static struct proc *allocproc(void) // 创建一个进程和 页表
+static struct proc *allocproc(void) // 创建一个进程和页表
 {
+    printf("[allocproc]: enter function \n");
     struct proc *p;
     for (p = proc; p < &proc[NPROC]; p++)
     {
@@ -121,6 +151,8 @@ static struct proc *allocproc(void) // 创建一个进程和 页表
     return 0; // alloc failed
 found:
     p->pid = allocpid();
+    printf("[allocproc]: p = %p \n", p);
+    printf("[allocproc]: allocated pid = %d\n", p->pid);
     p->state = USED;
     // 分配 trapframe 页面
     if ((p->trapframe = (struct trapframe *)kalloc()) == 0)
@@ -129,17 +161,21 @@ found:
         release(&p->lock);
         return 0;
     }
+    printf("[allocproc]: after alloc trapframe,trapframe = %p \n", p->trapframe);
     // 分配空的用户页表
     p->pagetable = proc_pagetable(p);
+    printf("[allocproc]: after alloc pagetable, pagetable = %p \n", p->pagetable);
     if (p->pagetable == 0)
     {
         freeproc(p);
         release(&p->lock);
         return 0;
     }
+    printf("[allocproc]: after alloc pagetable,pagetable = %p \n", p->pagetable);
     memset(&p->context, 0, sizeof(p->context));
     p->context.ra = (uint64)forkret;
     p->context.sp = p->kstack + PGSIZE;
+    printf("[allocproc]: exit function \n");
     return p;
 }
 
@@ -162,8 +198,11 @@ mycpu(void)
 // 创建一个用户进程页表，暂时只映射 trampoline 和 trapframe 而没有用户空间
 pagetable_t proc_pagetable(struct proc *p)
 {
+    printf("[proc_pagetable]: enter function ] \n");
+    printf("[proc_pagetable]: argument proc = %p \n", p);
     // return (uint64)p->pagetable;
     pagetable_t pagetable = uvmcreate();
+    printf("[proc_pagetable]: uvmcreate pagetable = %p \n", pagetable);
     if (pagetable == 0)
         return 0;
 
@@ -172,11 +211,12 @@ pagetable_t proc_pagetable(struct proc *p)
     // 只有超级用户使用它，在进入/离开用户空间时使用，所以不是 PTE_U
     if (mappages(pagetable, TRAMPOLINE, PGSIZE,
                  (uint64)trampoline, PTE_R | PTE_X) < 0)
-    {
+    { // 注意这里的 trampoline 要求是页对齐的
         uvmfree(pagetable, 0);
+        printf("[proc_pagetable]: mappages trampoline failed! \n");
         return 0;
     }
-
+    printf("[proc_pagetable]: after mappage trampoline \n");
     // 为每个进程分配一个 trapframe 页面
     if (mappages(pagetable, TRAPFRAME, PGSIZE,
                  (uint64)(p->trapframe), PTE_R | PTE_W) < 0)
@@ -186,7 +226,7 @@ pagetable_t proc_pagetable(struct proc *p)
         uvmfree(pagetable, 0);
         return 0;
     }
-
+    printf("[proc_pagetable]:  after mappages trapframe \n");
     return pagetable;
 }
 
@@ -311,6 +351,7 @@ void sleep(void *chan, struct spinlock *lk)
 
 void wakeup(void *chan)
 {
+    printf("[wakeup]: enter function \n");
     struct proc *p;
     for (p = proc; p < &proc[NPROC]; p++)
     {
@@ -421,11 +462,13 @@ void reparent(struct proc *p)
 
 void scheduler(void)
 {
+    printf("[scheduler]: enter scheduler \n");
     struct proc *p;
     struct cpu *c = mycpu();
     c->proc = 0;
     for (;;)
     {
+        printf("[scheduler]: enter loop \n");
         intr_on();
         intr_off();
         int found = 0;
@@ -434,16 +477,23 @@ void scheduler(void)
             acquire(&p->lock);
             if (p->state == RUNNABLE)
             {
+                printf("[scheduler]: find runnable p-> pid =%d \n", p->pid);
                 p->state = RUNNING;
                 c->proc = p;
                 // swtch 将当前cpu 中寄存器的值保存到 a0 也就是第一个参数
                 // 读取a1 也就是第二个参数中的寄存器到当前cpu 中
+                // 注意这里的cpu -> context 需要初始化，不然会陷入异常
+                printf("[scheduler]: c -> context %p \n", &c->context);
+                printf("[scheduler]: p -> context.ra == main_proc, %d \n", p->context.ra == (uint64)main_proc);
+                printf("[scheduler]: p->context.ra = %p, sp = %p\n", (void *)p->context.ra, (void *)p->context.sp);
                 swtch(&c->context, &p->context);
                 // 这里会跳转到 p 进程的执行代码中
                 // 对应的进程通过调用sched()函数切换回调度器
+                printf("[scheduler]: after swtch \n");
                 c->proc = 0;
                 found = 1;
             }
+            printf("[scheduler]: after checking proc %d, state = %d \n", p->pid, p->state);
             release(&p->lock);
         }
         if (found == 0)
@@ -456,6 +506,7 @@ void scheduler(void)
 
 void yield(void)
 {
+    printf("[yield]: enter function \n");
     struct proc *p = myproc();
     acquire(&p->lock);
     if (p->state != RUNNING)
@@ -559,10 +610,15 @@ void procdump(void)
     char *state;
 
     printf("\n");
+    printf("[procdump]:  before loop \n");
     for (p = proc; p < &proc[NPROC]; p++)
     {
+        // printf("[procdump]: enter loop \n");
         if (p->state == UNUSED)
+        {
+            // printf("[procdump]: proc unused \n");
             continue;
+        }
         if (p->state >= 0 && p->state < NELEM(states) && states[p->state])
             state = states[p->state];
         else
@@ -570,6 +626,7 @@ void procdump(void)
         printf("%d %s %s", p->pid, state, p->name);
         printf("\n");
     }
+    printf("[procdump]: loop exit \n");
 }
 // 内核态的 fork 测试主函数
 // void fork_test_main(void)
@@ -625,3 +682,99 @@ void procdump(void)
 //         sleep(&initproc, &wait_lock);
 //     }
 // }
+
+void main_proc_init(void)
+{
+    printf("[main_proc_init]: enter function \n");
+    struct proc *p;
+    struct cpu *c = mycpu();
+    p = &proc[0];
+    if (p == 0)
+        panic("[main_proc_init]: p is nullptr\n");
+    printf("[main_proc_init]: p = %p \n", p);
+    printf("[main_proc_init]: p -> pid = %d \n", p->pid);
+    printf("[main_proc_init]: p -> ra=%p,p ->sp=%p\n", (void *)p->context.ra, (void *)p->context.sp);
+    // printf("[main_proc_init]: c ->")
+    acquire(&p->lock);
+    printf("[main_proc_init]: after acquire lock \n");
+    p->state = RUNNABLE;
+    p->pid = allocpid();
+    printf("[main_proc_init]: after alloc pid ,and pid = %d\n", p->pid);
+    p->parent = 0;
+    safestrcpy(p->name, "main", sizeof(p->name));
+    printf("[main_proc_init]: p -> name = %s \n", p->name);
+    initproc = p;
+
+    // 设置主进程的返回值
+    p->context.ra = (uint64)main_proc;
+    p->context.sp = p->kstack + PGSIZE;
+    c->proc = p;
+    release(&p->lock);
+    printf("[main_proc_init]: exit \n");
+}
+
+int create_process(void (*func)(void))
+{
+    printf("[create_process]: enter function \n");
+    printf("[create_process]: argument func = %p \n", func);
+    struct proc *p = allocproc();
+    printf("[create_process]: p = %p \n", p);
+    if (p == 0)
+        return -1;
+    p->context.ra = (uint64)func;
+    p->context.sp = p->kstack + PGSIZE;
+    p->parent = myproc();
+    printf("[create_process]: before acquire \n");
+    // acquire(&p->lock);
+    p->state = RUNNABLE;
+    release(&p->lock);
+
+    printf("[create_process]: exit function,  pid = %d \n", p->pid);
+    return p->pid;
+}
+
+int wait_process(void)
+{
+    printf("[wait_process]: enter function \n");
+    struct proc *p = myproc();
+    struct proc *child;
+    int havekids, pid;
+
+    acquire(&wait_lock);
+    for (;;)
+    {
+        printf("[waitt_process]: enter loop \n");
+        havekids = 0;
+        for (child = proc; child < &proc[NPROC]; child++)
+        {
+            // printf("[wait_process]: p = %p \n", p);
+            // printf("[wait_process]: child -> parent : %p\n", child->parent);
+            // printf("[wait_process]: child -> pid : %d \n", child->pid);
+            // printf("[wait_process]: child -> parent == myproc(), %d \n", child->parent == p);
+            if (child->parent == p)
+            {
+                acquire(&child->lock);
+                havekids = 1;
+                if (child->state == ZOMBIE)
+                {
+                    pid = child->pid;
+                    printf("[wait_process]:  find kid pid : %d\n", pid);
+                    freeproc(child);
+                    release(&child->lock);
+                    release(&wait_lock);
+                    return pid;
+                }
+                release(&child->lock);
+            }
+        }
+        // procdump();
+
+        if (!havekids || p->killed)
+        {
+            release(&wait_lock);
+            return -1;
+        }
+
+        sleep(p, &wait_lock);
+    }
+}

@@ -108,8 +108,10 @@ void pagetable_test();
 void pagetable_test_enhanced();
 void virtual_memory_test();
 void clockintr_test();
-void process_creation_test();
+// void process_creation_test();
 void fork_test_main();
+void test_process_creation();
+// void process_init();
 
 // plic.c
 void plicinit(void);
@@ -139,6 +141,10 @@ void procdump(void);
 void reparent(struct proc *p);
 void userinit(void);
 int shrinkproc(int);
+void main_proc_init();
+int create_process(void (*func)(void));
+int wait_process(void);
+void mapkstacks(pagetable_t kpgtbl);
 
 // string.c
 void *memset(void *dst, int c, uint n);

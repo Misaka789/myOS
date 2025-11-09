@@ -1,7 +1,7 @@
 .globl trampoline
 .globl uservec
 .globl userret
-.align 4
+.align 12 # 修改为 页对齐
 trampoline:
 
 #
