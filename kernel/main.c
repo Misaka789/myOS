@@ -91,7 +91,8 @@ void main()
     // printf("hello world");
     main_proc_init();
     procdump();
-    test_process_creation();
+    // test_process_creation();
+    test_scheduler();
 
     // printf("see you again");
     scheduler(); // 让主 CPU 核心进入调度器，永不返回

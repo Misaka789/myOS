@@ -29,14 +29,21 @@ extern void forkret(void); // fork 返回时的函数
 static void freeproc(struct proc *p);
 void main_proc(void)
 {
+    // 这函数是主进程的执行函数
     printf("[main_proc]: main process started \n");
     release(&myproc()->lock);
-    for (int i = 1; i < NPROC; i++)
+    for (;;)
     {
-        printf("[main_proc]: proc %d state = %d \n", proc[i].pid, proc[i].state);
-        wait_process();
+        for (int i = 1; i < NPROC; i++)
+        {
+            // printf("[main_proc]: proc %d state = %d \n", proc[i].pid, proc[i].state);
+            wait_process();
+        }
     }
-    procdump();
+    // procdump();
+    uint64 time = get_time();
+    printf("[main_proc]: current time : %d\n", time);
+
     // exit(0);
     for (;;)
     {
@@ -486,6 +493,7 @@ void scheduler(void)
                 printf("[scheduler]: c -> context %p \n", &c->context);
                 printf("[scheduler]: p -> context.ra == main_proc, %d \n", p->context.ra == (uint64)main_proc);
                 printf("[scheduler]: p->context.ra = %p, sp = %p\n", (void *)p->context.ra, (void *)p->context.sp);
+                printf("[scheduler]:  ready to swtch to pid = %d\n", p->pid);
                 swtch(&c->context, &p->context);
                 // 这里会跳转到 p 进程的执行代码中
                 // 对应的进程通过调用sched()函数切换回调度器
@@ -493,7 +501,7 @@ void scheduler(void)
                 c->proc = 0;
                 found = 1;
             }
-            printf("[scheduler]: after checking proc %d, state = %d \n", p->pid, p->state);
+            // printf("[scheduler]: after checking proc %d, state = %d \n", p->pid, p->state);
             release(&p->lock);
         }
         if (found == 0)
@@ -524,7 +532,7 @@ void forkret(void)
     extern char userret[];
     static int first = 1;
     struct proc *p = myproc();
-    release(&p->lock);
+    release(&p->lock); // 这个锁是从调度器那里继承过来的
     if (first)
     {
         // TODO: 文件系统中fs 的初始化
@@ -540,6 +548,9 @@ void forkret(void)
     prepare_return();
     uint64 satp = MAKE_SATP(p->pagetable);
     uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+    // 通过函数指针调用 trampoline_userret 完成从内核空间到用户空间的切换
+    // 语法解析，(void(*)(uint64)) 是将 trampoline_userret 强制转换为一个函数指针类型
+    // 该函数指针指向一个接受 uint64 类型参数并返回 void 的
     ((void (*)(uint64))trampoline_userret)(satp);
 }
 
@@ -735,7 +746,7 @@ int create_process(void (*func)(void))
 
 int wait_process(void)
 {
-    printf("[wait_process]: enter function \n");
+    // printf("[wait_process]: enter function \n");
     struct proc *p = myproc();
     struct proc *child;
     int havekids, pid;
@@ -743,7 +754,7 @@ int wait_process(void)
     acquire(&wait_lock);
     for (;;)
     {
-        printf("[waitt_process]: enter loop \n");
+        // printf("[waitt_process]: enter loop \n");
         havekids = 0;
         for (child = proc; child < &proc[NPROC]; child++)
         {
@@ -758,7 +769,8 @@ int wait_process(void)
                 if (child->state == ZOMBIE)
                 {
                     pid = child->pid;
-                    printf("[wait_process]:  find kid pid : %d\n", pid);
+                    // printf("[wait_process]:  find kid pid : %d\n", pid);
+                    printf("[wait_process]: freeing child process %d \n", pid);
                     freeproc(child);
                     release(&child->lock);
                     release(&wait_lock);

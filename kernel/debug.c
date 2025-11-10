@@ -260,7 +260,7 @@ void test_process_creation(void)
 
     // Test 2: Process table limit
     printf("[test_process_creation]: Testing process table limit...\n");
-    // int pids[NPROC];
+    // int pids[NPROC]s;
     int count = 1;
     for (int i = 1; i < NPROC - 1; i++)
     {
@@ -297,6 +297,32 @@ void test_process_creation(void)
 
     // printf("[test_process_creation]: Process creation test finished successfully.\n\n");
     // 因为这里还么有参与调度，所以暂时没有办法释放
+}
+
+void cpu_intensive_task(void)
+{
+    struct proc *p = myproc();
+    printf("[cpu_intensive_task]: pid = %d, enter function \n", p->pid);
+    for (volatile int i = 0; i < 5; i++)
+        ;
+    printf("[cpu_intensive_task]: pid = %d, exiting function \n", p->pid);
+    wakeup(p->parent);
+    p->state = ZOMBIE;
+    sched();
+    // exit(0);
+}
+
+void test_scheduler(void)
+{
+    printf("[test_scheduler]: Testing scheduler...\n");
+    for (int i = 0; i < 3; i++)
+    {
+        create_process(cpu_intensive_task);
+    }
+    uint64 start_time = get_time();
+    // sleep(myproc(), 1000);
+    uint64 end_time = get_time();
+    printf("[test_scheduler]: Scheduler test completed in %d cycles \n", end_time - start_time);
 }
 
 // The entry point for all kernel tests.

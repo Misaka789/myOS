@@ -76,8 +76,8 @@ uservec:  // 这里已经是S 模式了，但是 sp 指针仍然指向用户栈
 #
 userret:
     # 切换回用户页表
-    csrw satp, a0
-    sfence.vma
+    csrw satp, a0   # 将传入的参数 a0 也就是页表写入页表寄存器 
+    sfence.vma #  刷新tlb
 
     # 再次交换 sp 和 sscratch，让 sp 指向陷阱帧
     csrrw sp, sscratch, sp

@@ -111,6 +111,7 @@ void clockintr_test();
 // void process_creation_test();
 void fork_test_main();
 void test_process_creation();
+void test_scheduler();
 // void process_init();
 
 // plic.c
