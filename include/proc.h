@@ -100,8 +100,6 @@ struct proc
     int killed;           // 如果非零，表示进程已被标记为杀死
     int xstate;           // 退出状态，由父进程读取
     int pid;              // 进程 ID
-    char name[16];        // 进程名 (debugging)
-    char *cwd;            // 当前工作目录
     // wait_lock 必须持有时才能修改的字段
     struct proc *parent; // 父进程
 
@@ -111,6 +109,9 @@ struct proc
     pagetable_t pagetable;       // 用户页表
     struct trapframe *trapframe; // 用于保存 S 模式陷阱的上下文
     struct context context;      // 用于在 swtch 中切换的上下文
+    char name[16];               // 进程名 (debugging)
+    struct inode *cwd;           // 当前工作目录
+    struct file *ofile[NOFILE];  // 打开的文件
 };
 
 #endif

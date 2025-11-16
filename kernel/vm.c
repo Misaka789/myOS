@@ -259,6 +259,16 @@ pagetable_t uvmcreate() // 为用户进程创建空页表
     return pagetable;
 }
 
+void uvmclear(pagetable_t pagetable, uint64 va)
+{
+    pte_t *pte;
+
+    pte = walk(pagetable, va, 0);
+    if (pte == 0)
+        panic("uvmclear");
+    *pte &= ~PTE_U;
+}
+
 uint64 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
 { // 为用户进程分配内存 oldsz 表示旧大小，newsz 表示新大小
     char *mem;

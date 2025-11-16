@@ -338,6 +338,23 @@ void kernel_test_main(void)
     printf("======= KERNEL UNIT TESTS END =======\n\n");
 }
 
+// void test_filesystem_integrity(void)
+// {
+//     printf("[test_filesystem_integrity]: Testing filesystem integrity...\n");
+//     // Implement filesystem integrity checks here.
+//     int fd = open("testfile.txt", 0);
+//     if (fd < 0)
+//     {
+//         printf("[test_filesystem_integrity]: Failed to open testfile.txt\n");
+//     }
+//     else
+//     {
+//         printf("[test_filesystem_integrity]: Successfully opened testfile.txt\n");
+//         close(fd);
+//     }
+//     printf("[test_filesystem_integrity]: Filesystem integrity test completed.\n");
+// }
+
 // void process_creation_test(void)
 // {
 //     printf("[Test] process_creation_test begin\n");

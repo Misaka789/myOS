@@ -12,6 +12,8 @@
 #define LOGSIZE (MAXOPBLOCKS * 3) // 日志大小
 #define NBUF (MAXOPBLOCKS * 3)    // 缓冲区数量
 #define FSSIZE 2000               // 文件系统大小(块数)
+#define MAXPATH 128               // 最大路径长度
+#define USERSTACK 1               // 用户栈页数
 
 #define NPROC 64 // 系统最大进程数
 

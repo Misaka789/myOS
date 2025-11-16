@@ -25,7 +25,7 @@ uint64 sys_exit(void)
     return 0;
 }
 // 获取当前进程的 pid
-uint64 sys_getgid(void)
+uint64 sys_getpid(void)
 {
     return myproc()->pid;
 }

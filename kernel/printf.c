@@ -4,19 +4,20 @@
 #include "riscv.h"
 #include "stdarg.h"
 #include "defs.h" // 包含统一声明
+// #include "string.c"
 
 /* // 前向声明
 void consoleputc(int c);
 void panic(char *s); */
 
 // 简单的字符串长度函数  遍历字符串直到遇到终止符 \0
-int strlen(const char *s)
-{
-    int n = 0;
-    while (*s++)
-        n++;
-    return n;
-}
+// int strlen(const char *s)
+// {
+//     int n = 0;
+//     while (*s++)
+//         n++;
+//     return n;
+// }
 
 // 输出字符串
 /* static void puts(char *s)

@@ -47,7 +47,16 @@ OBJS = \
   $K/swtch.o \
   $K/string.o \
   $K/syscall.o \
-  $K/sysproc.o
+  $K/sysproc.o \
+  $K/file.o \
+  $K/fs.o \
+  $K/log.o \
+  $K/virtio_disk.o \
+  $K/pipe.o \
+  $K/bio.o \
+  $K/sleeplock.o \
+  $K/sysfile.o  \
+  $K/exec.o
 
 # 默认目标
 all: $K/kernel

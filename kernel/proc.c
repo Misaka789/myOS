@@ -532,14 +532,16 @@ void forkret(void)
     extern char userret[];
     static int first = 1;
     struct proc *p = myproc();
-    release(&p->lock); // 这个锁是从调度器那里继承过来的
+    release(&p->lock); // 这78个锁是从调度器那里继承过来的
     if (first)
     {
+        // 用来初始化第一个主进程
         // TODO: 文件系统中fs 的初始化
         // fsinit(ROOTDEV); // 初始化 fs
         __sync_synchronize();
         // TODO : 系统调用不够完善
         // p->trapframe->a0 = exec("/init", (char *[]){"/init", 0});
+        p->trapframe->a0 = (uint64)main_proc;
         if (p->trapframe->a0 == -1)
         {
             panic("exec");
@@ -604,6 +606,20 @@ int either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
     else
     {
         memmove((char *)dst, src, len);
+        return 0;
+    }
+}
+
+int either_copyin(void *dst, int user_src, uint64 src, uint64 len)
+{
+    struct proc *p = myproc();
+    if (user_src)
+    {
+        return copyin(p->pagetable, dst, src, len);
+    }
+    else
+    {
+        memmove(dst, (char *)src, len);
         return 0;
     }
 }
