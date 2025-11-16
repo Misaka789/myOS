@@ -4,12 +4,19 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <errno.h>
 
 #define stat xv6_stat // avoid clash with host struct stat
-#include "include/types.h"
-#include "include/fs.h"
-#include "include/stat.h"
-#include "include/param.h"
+#include "types.h"
+#include "fs.h"
+#include "stat.h"
+#include "param.h"
+
+// #ifndef O_CREATE
+// #define O_CREATE O_CREAT
+// #endif
+
+int open(const char *pathname, int flags, ...);
 
 #ifndef static_assert
 #define static_assert(a, b) \
@@ -23,8 +30,10 @@
 
 #define NINODES 200
 
+// int open(const char *pathname, int flags, ...);
+
 // Disk layout:
-// [ boot block | sb block | log | inode blocks | free bit map | data blocks ]
+// [ boot block | sb block | log blocks | inode blocks | free bit map | data blocks ]
 
 int nbitmap = FSSIZE / BPB + 1;
 int ninodeblocks = NINODES / IPB + 1;
@@ -88,9 +97,13 @@ int main(int argc, char *argv[])
     assert((BSIZE % sizeof(struct dinode)) == 0);
     assert((BSIZE % sizeof(struct dirent)) == 0);
 
-    fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
+    fsfd = open(argv[1], O_RDWR | 0100 | O_TRUNC, 0666);
     if (fsfd < 0)
+    {
+        fprintf(stderr, "mkfs: open('%s', O_RDWR|O_CREATE|O_TRUNC) failed: errno=%d\n",
+                argv[1], errno);
         die(argv[1]);
+    }
 
     // 1 fs block = 1 disk sector
     nmeta = 2 + nlog + ninodeblocks + nbitmap;
@@ -158,6 +171,7 @@ int main(int argc, char *argv[])
         bzero(&de, sizeof(de));
         de.inum = xshort(inum);
         strncpy(de.name, shortname, DIRSIZ);
+        de.name[DIRSIZ - 1] = '\0'; // ensure null termination
         iappend(rootino, &de, sizeof(de));
 
         while ((cc = read(fd, buf, sizeof(buf))) > 0)

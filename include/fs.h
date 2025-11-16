@@ -34,23 +34,6 @@ struct dinode // 每个文件在磁盘上都对应一个dinode 结构
     uint addrs[NDIRECT + 1]; // 数据块地址
 };
 
-// in-memory copy of an inode
-struct inode
-{
-    uint dev;              // Device number
-    uint inum;             // Inode number
-    int ref;               // Reference count
-    struct sleeplock lock; // protects everything below here
-    int valid;             // inode has been read from disk?
-
-    short type; // copy of disk inode
-    short major;
-    short minor;
-    short nlink;
-    uint size;
-    uint addrs[NDIRECT + 1];
-};
-
 #define IPB (BSIZE / sizeof(struct dinode))       // 每块 inode 数量
 #define IBLOCK(i, sb) ((i) / IPB + sb.inodestart) // 包含 inode i 的块号
 #define BPB (BSIZE * 8)                           // 每块位图位数
