@@ -102,7 +102,11 @@ void kerneltrap()
     uint64 sc = r_scause();
     if (sc >> 63) // 最高位为1 说明了是中断
     {             // interrupt
-        panic("[kerneltrap]: interrupt panic \n");
+        // panic("[kerneltrap]: interrupt panic \n");
+        printf("[kerneltrap]: enter interrupt handler \n");
+        printf("[kerneltrap]: scause=0x%p sepc=0x%p stval=0x%p\n", sc, r_sepc(), r_stval());
+        printf("[kerneltrap]: sstatus=0x%p sip=0x%p sie=0x%p\n", r_sstatus(), r_sip(), r_sie());
+
         uint64 code = sc & 0xff;
         switch (code)
         {       // S-timer
@@ -170,6 +174,9 @@ void kerneltrap()
 
 uint64 usertrap(void)
 {
+    printf("[usertrap]: scause=0x%p sepc=0x%p stval=0x%p pid=%d\n",
+           r_scause(), r_sepc(), r_stval(), myproc() ? myproc()->pid : -1);
+
     int which_dev = 0;
     if ((r_sstatus() & SSTATUS_SPP) != 0)
         panic("usertrap : not frome user mode");

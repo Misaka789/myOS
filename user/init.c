@@ -14,8 +14,11 @@ char *argv[] = {"sh", 0};
 
 int main(void)
 {
+    write(1, "INIT START\n", 11);
+    for (;;)
+        ;
     int pid, wpid;
-
+    // printf("[init:main]: init started \n");
     if (open("console", O_RDWR) < 0)
     {
         mknod("console", CONSOLE, 0);

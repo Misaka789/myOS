@@ -13,6 +13,9 @@
 #define SIE_SSIE (1L << 1)
 #endif
 
+#define UART0_IRQ 10
+#define VIRTIO0_IRQ 1
+
 extern char edata[], end[];
 
 // // 简单的内存清零函数
@@ -89,10 +92,26 @@ void main()
     // 打印进程状态
     // procdump();
     // printf("hello world");
-    main_proc_init();
+    // main_proc_init();
     procdump();
     // test_process_creation();
-    test_scheduler();
+    // test_scheduler();
+
+    binit();
+    iinit();
+    fileinit();
+
+    // 注册中断，开启对应的中断
+    register_interrupt(VIRTIO0_IRQ, virtio_disk_intr);
+    plic_enable(VIRTIO0_IRQ);
+
+    printf("[main]: sstatus(before intr_on)=0x%p\n", r_sstatus());
+    intr_on();
+    printf("[main]: sstatus(after intr_on)=0x%p\n", r_sstatus());
+    virtio_disk_init();
+
+    userinit(); // 创建第一个用户进程
+    __sync_synchronize();
 
     // printf("see you again");
     scheduler(); // 让主 CPU 核心进入调度器，永不返回

@@ -193,8 +193,7 @@ static inline uint64 r_stvec()
   asm volatile("csrr %0, stvec" : "=r"(x));
   return x;
 }
-// #define SSTATUS_SIE (1 << 1)
-static inline void intr_on() { w_sstatus(r_sstatus() | SSTATUS_SIE); }
+
 static inline void intr_off() { w_sstatus(r_sstatus() & ~SSTATUS_SIE); }
 static inline int
 intr_get()
@@ -235,5 +234,12 @@ static inline uint64 r_mcounteren()
   uint64 x;
   asm volatile("csrr %0, mcounteren" : "=r"(x));
   return x;
+}
+
+// #define SSTATUS_SIE (1 << 1)
+static inline void intr_on()
+{
+  w_sie(r_sie() | (1 << 1) | (1 << 9));
+  w_sstatus(r_sstatus() | SSTATUS_SIE);
 }
 #endif

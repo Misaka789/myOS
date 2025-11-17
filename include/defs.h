@@ -109,8 +109,9 @@ void set_timer(uint64 when);
 void kerneltrap();
 void trapinit();
 void trapinithart();
-void kernelvec(); // 内核异常处理入口
-void timervec();  // 定时器中断处理入口
+void kernelvec();                                              // 内核异常处理入口
+void timervec();                                               // 定时器中断处理入口
+void register_interrupt(int irq, interrupt_handler_t handler); // 中断注册
 
 #define MAX_IRQS 1024
 

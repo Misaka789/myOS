@@ -237,33 +237,15 @@ pagetable_t proc_pagetable(struct proc *p)
     return pagetable;
 }
 
+// 设置第一个用户进程
 void userinit(void)
 {
-    // struct proc *p;
-    // p = allocproc();
-    // initproc = p;
-    // // p->cwd = namei("/"); // 设置当前工作目录为根目录
-    // // proc_freepagetable(p->pagetable, 0);
-    // // extern char _binary_user_first_prog_bin_start[];
-    // // extern char _binary_user_first_prog_bin_size[];
-    // // if (uvmcopy(p->pagetable, p->sz, (uint64)_binary_user_first_prog_bin_start, (uint64)_binary_user_first_prog_bin_size) < 0)
-    // //     panic("userinit: uvmcopy failed");
-
-    // uvminit(p->pagetable, initcode, sizeof(initcode));
-    // p->sz = PGSIZE;
-    // // 设置 trapframe
-    // p->state = RUNNABLE;
-    // p->trapframe->epc = 0;     // user program counter
-    // p->trapframe->sp = PGSIZE; // user stack pointer
-
-    // safestrcpy(p->name, "first_prog", sizeof(p->name)); // Give it a proper name
-    // release(&p->lock);
-
+    printf("[userinit]: enter function \n");
     struct proc *p;
     p = allocproc();
+    printf("[userinit]:first user proc, after allocproc pid = %d \n", p->pid);
     initproc = p;
-    // TODO : 文件 系统需要完善的地方
-    // p->cwd = namei("/");
+    p->cwd = namei("/"); // 设置当前工作目录为根目录
     p->state = RUNNABLE;
     release(&p->lock);
 }
@@ -281,7 +263,7 @@ int shrinkproc(int n)
 
 int fork(void)
 {
-    int pid;
+    int pid, i;
     struct proc *np;
     struct proc *p = myproc();
     if ((np = allocproc()) == 0)
@@ -298,11 +280,11 @@ int fork(void)
     np->sz = p->sz;                     // 设置新进程的内存大小
     *(np->trapframe) = *(p->trapframe); // 复制寄存器状态
     np->trapframe->a0 = 0;              // 让子进程返回 0
-    // 这里先暂时不管文件和目录的复制
-    // for (i = 0; i < NOFILE; i++)
-    //     if (p->ofile[i])
-    //         np->ofile[i] = filedup(p->ofile[i]);    // 复制打开的文件
-    // np->cwd = idup(p->cwd);                         // 复制当前工作目录
+                                        // 这里先暂时不管文件和目录的复制
+    for (i = 0; i < NOFILE; i++)
+        if (p->ofile[i])
+            np->ofile[i] = filedup(p->ofile[i]);    // 复制打开的文件
+    np->cwd = idup(p->cwd);                         // 复制当前工作目录
     safestrcpy(np->name, p->name, sizeof(p->name)); // 复制进程名
     pid = np->pid;                                  // 获取新进程的 PID
     release(&np->lock);
@@ -422,21 +404,19 @@ void exit(int status)
     struct proc *p = myproc();
     if (p == initproc)
         panic("init exiting");
-    // for (int fd = 0; fd < NOFILE; fd++)
-    // {
-    //     if (p->ofile[fd])
-    //     {
-    //         struct file *f = p->ofile[fd];
-    //         fileclose(f);
-    //         p->ofile[fd] = 0;
-    //     }
-    // }
-    // begin_op();
-    // iput(p->cwd);
-    // end_op();
-    // p->cwd = 0;
-
-    // TODO: 关闭所有进程打开的文件
+    for (int fd = 0; fd < NOFILE; fd++)
+    {
+        if (p->ofile[fd])
+        {
+            struct file *f = p->ofile[fd];
+            fileclose(f);
+            p->ofile[fd] = 0;
+        }
+    }
+    begin_op();
+    iput(p->cwd);
+    end_op();
+    p->cwd = 0;
 
     acquire(&wait_lock);
     // 将子进程的父进程设置为 initproc
@@ -492,6 +472,7 @@ void scheduler(void)
                 // 注意这里的cpu -> context 需要初始化，不然会陷入异常
                 printf("[scheduler]: c -> context %p \n", &c->context);
                 printf("[scheduler]: p -> context.ra == main_proc, %d \n", p->context.ra == (uint64)main_proc);
+                printf("[scheduler]: p -> context.ra == forkret, %d \n", p->context.ra == (uint64)forkret);
                 printf("[scheduler]: p->context.ra = %p, sp = %p\n", (void *)p->context.ra, (void *)p->context.sp);
                 printf("[scheduler]:  ready to swtch to pid = %d\n", p->pid);
                 swtch(&c->context, &p->context);
@@ -529,19 +510,20 @@ void forkret(void)
     // 子进程第一次被调度时会从这里开始。
     // 它仍然持有从 scheduler() -> swtch() -> allocproc() 继承来的锁。
     // 释放这个锁是它的第一要务。
+    printf("[forkret]: enter function \n");
     extern char userret[];
     static int first = 1;
     struct proc *p = myproc();
-    release(&p->lock); // 这78个锁是从调度器那里继承过来的
+    release(&p->lock); // 这个锁是从调度器那里继承过来的
+    printf("[forkret]: current first value: %d \n", first);
     if (first)
     {
         // 用来初始化第一个主进程
-        // TODO: 文件系统中fs 的初始化
-        // fsinit(ROOTDEV); // 初始化 fs
+        fsinit(ROOTDEV); // 初始化 fs
+        first = 0;
         __sync_synchronize();
-        // TODO : 系统调用不够完善
-        // p->trapframe->a0 = exec("/init", (char *[]){"/init", 0});
-        p->trapframe->a0 = (uint64)main_proc;
+        printf("[forkret]: first process fsinit done,ready for init \n");
+        p->trapframe->a0 = exec("/init", (char *[]){"/init", 0});
         if (p->trapframe->a0 == -1)
         {
             panic("exec");

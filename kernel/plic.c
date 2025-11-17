@@ -56,6 +56,10 @@ void plicinithart(void)
     // 注意：这里先写死，后续可以由驱动自己开启
     // *(uint32 *)PLIC_SENABLE(hart) |= (1 << UART0_IRQ);
     // *(uint32 *)PLIC_SENABLE(hart) |= (1 << VIRTIO0_IRQ);
-
+    uint32 en = 0;
+    en |= (1 << 10);
+    en |= (1 << 1);
+    *(uint32 *)PLIC_SENABLE(hart) = en;
+    printf("[plicinithart]: SENABLE=0x%x\n", *(uint32 *)PLIC_SENABLE(hart));
     printf("plicinithart\n");
 }

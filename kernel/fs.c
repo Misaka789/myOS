@@ -16,18 +16,31 @@ struct superblock sb; // 全局超级块变量，表示文件系统的超级块�
 
 static void readsb(int dev, struct superblock *sb) // 读取超级块的函数声明
 {
+    printf("[readsb]: readsb started \n");
     struct buf *bp;
-    bp = bread(dev, 1);                 // 读取包含块 b 的位图块
+    bp = bread(dev, 1); // 读取包含块 b 的位图块
+    printf("[readsb]: bread completed \n");
     memmove(sb, bp->data, sizeof(*sb)); // 将读取的数据复制到超级块结构中
-    brelse(bp);                         // 释放缓冲区
+    // brelse(bp);                              // 释放缓冲区
+    printf("[readsb]: readsb completed \n"); // 调试：打印前 16 字节看看
+    uint32 *p = (uint32 *)bp->data;
+    printf("[readsb]: raw super block: %x %x %x %x\n",
+           p[0], p[1], p[2], p[3]);
+
+    memmove(sb, bp->data, sizeof(*sb));
+    brelse(bp);
+    printf("[readsb]: readsb completed, sb.magic=%x\n", sb->magic);
 }
 
 void fsinit(int dev)
 {
-    readsb(dev, &sb);                 // 读取超级块信息
+    printf("[fsinit]: fsinit started \n");
+    readsb(dev, &sb); // 读取超级块信息
+    printf("[fsinit]: superblock magic number: %x \n", sb.magic);
     if (sb.magic != FSMAGIC)          // 检查超级块的魔数是否正确
         panic("invalid file system"); // 如果不正确，触发内核恐慌
     initlog(dev, &sb);                // 初始化日志
+    printf("[fsinit]: fsinit completed \n");
 }
 
 static void bzero(int dev, int bno)
@@ -94,6 +107,7 @@ void iinit()
     {
         initsleeplock(&itable.inode[i].lock, "inode"); // 初始化每个 inode 的睡眠锁
     }
+    printf("[iinit]: iinit completed \n");
 }
 
 // 从内存 inode 表中找到制定的 dev + inum 的inode , 如果没有则从磁盘加载

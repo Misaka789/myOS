@@ -23,6 +23,7 @@ struct
 void fileinit(void)
 {
     initlock(&ftable.lock, "ftable");
+    printf("[fileinit]: fileinit completed \n");
 }
 
 // 分配一个文件结构

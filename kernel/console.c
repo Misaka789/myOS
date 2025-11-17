@@ -1,8 +1,15 @@
 // 控制台管理
+#include <stdarg.h>
 #include "types.h"
 #include "param.h"
 #include "riscv.h"
 #include "defs.h" // 替换各种单独的声明
+#include "memlayout.h"
+#include "file.h"
+#include "fs.h"
+
+#define BACKSPACE 0x100
+#define C(x) ((x) - '@') // Control-x
 
 // 控制台缓冲区
 #define CONSOLE_BUF_SIZE 256
@@ -29,6 +36,8 @@ void consoleinit(void)
     // 清空控制台缓冲区
     console.r = console.w = console.e = 0;
     console.output_pos = 0;
+    devsw[CONSOLE].read = consoleread;
+    devsw[CONSOLE].write = consolewrite;
 }
 
 // 输出单个字符到控制台

@@ -27,7 +27,8 @@ HOSTCFLAGS = -Wall -Werror -O2
 
 # 用户程序列表
 UPROGS = \
-  $U/_init 
+  $U/_init \
+  $U/_sh
 
 
 # 链接选项
@@ -102,7 +103,7 @@ $K/kernel: $(OBJS) kernel/kernel.ld
 
 # 编译 mkfs 工具 （宿主机程序）
 mkfs/mkfs: mkfs/mkfs.c include/fs.h include/param.h
-	$(HOSTCC) $(HOSTCFLAGS) -I./include -o mkfs/mkfs mkfs/mkfs.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
 # 生成 usys.S（系统调用封装）
 user/usys.S: user/usys.pl include/syscall.h
@@ -128,9 +129,9 @@ clean:
 	rm -f user/*.o user/*.d
 # QEMU运行
 QEMUOPTS = -machine virt -bios none -kernel kernel/kernel -m 128M -smp 1 -nographic
-
+QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
-QEMUOPTS += -device virtio-blk-device,drive=x0
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 qemu: kernel/kernel fs.img
 	qemu-system-riscv64 $(QEMUOPTS)

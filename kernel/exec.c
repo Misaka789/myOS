@@ -37,6 +37,7 @@ int exec(char *path, char **argv)
     if ((ip = namei(path)) == 0)
     {
         end_op();
+        printf("[exec]: namei(%s) failed\n", path);
         return -1;
     }
     ilock(ip);
@@ -131,10 +132,14 @@ int exec(char *path, char **argv)
     p->trapframe->epc = elf.entry; // initial program counter = main
     p->trapframe->sp = sp;         // initial stack pointer
     proc_freepagetable(oldpagetable, oldsz);
+    printf("[exec]: path = %s \n", path);
+    printf("[exec]: success '%s', entry=0x%p, sz=0x%p\n",
+           path, p->trapframe->epc, p->sz);
 
     return argc; // this ends up in a0, the first argument to main(argc, argv)
 
 bad:
+    printf("[exec]: exec failed \n");
     if (pagetable)
         proc_freepagetable(pagetable, sz);
     if (ip)

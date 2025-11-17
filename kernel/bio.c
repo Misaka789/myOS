@@ -28,6 +28,7 @@ void binit(void)
         bcache.head.next->prev = b;
         bcache.head.next = b;
     }
+    printf("[binit]: binit completed \n");
 }
 
 static struct buf *
@@ -72,9 +73,12 @@ bget(uint dev, uint blockno)
 struct buf *
 bread(uint dev, uint blockno)
 {
+    printf("[bread]: enter function \n");
     struct buf *b;
 
     b = bget(dev, blockno);
+    printf("[bread]: after bget, b = %p \n", b);
+    printf("[bread]: b->valid = %d \n", b->valid);
     if (!b->valid)
     {
         virtio_disk_rw(b, 0);

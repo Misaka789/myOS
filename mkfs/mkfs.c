@@ -5,17 +5,21 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 
 #define stat xv6_stat // avoid clash with host struct stat
-#include "types.h"
-#include "fs.h"
-#include "stat.h"
-#include "param.h"
+// #include "include/types.h"
+#include "/home/misaka/projects/riscv-os/include/fs.h"
+#include "/home/misaka/projects/riscv-os/include/types.h"
+#include "/home/misaka/projects/riscv-os/include/stat.h"
+#include "/home/misaka/projects/riscv-os/include/param.h"
 
 // #ifndef O_CREATE
 // #define O_CREATE O_CREAT
 // #endif
-
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 int open(const char *pathname, int flags, ...);
 
 #ifndef static_assert
@@ -97,13 +101,25 @@ int main(int argc, char *argv[])
     assert((BSIZE % sizeof(struct dinode)) == 0);
     assert((BSIZE % sizeof(struct dirent)) == 0);
 
-    fsfd = open(argv[1], O_RDWR | 0100 | O_TRUNC, 0666);
+    // TODO: modify
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        perror("getcwd");
+        exit(1);
+    }
+    printf("[mkfs]: CWD = %s\n", cwd);
+    char *img = argv[1];
+    printf("[mkfs]: argv[1] = '%s'\n", img);
+
+    fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
     if (fsfd < 0)
     {
         fprintf(stderr, "mkfs: open('%s', O_RDWR|O_CREATE|O_TRUNC) failed: errno=%d\n",
                 argv[1], errno);
         die(argv[1]);
     }
+    printf("[mkfs]: open ok, fsfd=%d\n", fsfd);
 
     // 1 fs block = 1 disk sector
     nmeta = 2 + nlog + ninodeblocks + nbitmap;
@@ -118,7 +134,7 @@ int main(int argc, char *argv[])
     sb.inodestart = xint(2 + nlog);
     sb.bmapstart = xint(2 + nlog + ninodeblocks);
 
-    printf("nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
+    printf("[mkfs]: nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
            nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
     freeblock = nmeta; // the first free block that we can allocate
@@ -128,7 +144,29 @@ int main(int argc, char *argv[])
 
     memset(buf, 0, sizeof(buf));
     memmove(buf, &sb, sizeof(sb));
+
+    uint *bp = (uint *)buf;
+    printf("[mkfs]: buf before wsect(1): %x %x %x %x\n",
+           bp[0], bp[1], bp[2], bp[3]);
+
+    printf("[mkfs]: will write superblock magic=0x%x (raw FSSIZE=%d, nblocks=%d)\n",
+           FSMAGIC, FSSIZE, nblocks);
+    printf("[mkfs]: will write superblock magic=0x%x (raw FSSIZE=%d, nblocks=%d)\n",
+           FSMAGIC, FSSIZE, nblocks);
     wsect(1, buf);
+    printf("[mkfs]: superblock written to block 1\n");
+
+    // ===== 调试：立刻读回 block1 看看到底写进去没有 =====
+    {
+        char verify[BSIZE];
+        uint *p;
+        memset(verify, 0, sizeof(verify));
+        rsect(1, verify);
+        p = (uint *)verify;
+        printf("[mkfs]: verify block1 first 4 uints: %x %x %x %x\n",
+               p[0], p[1], p[2], p[3]);
+    }
+    // ===================================================
 
     rootino = ialloc(T_DIR);
     assert(rootino == ROOTINO);
@@ -189,15 +227,55 @@ int main(int argc, char *argv[])
 
     balloc(freeblock);
 
+    // TODO: modify
+    printf("[mkfs]: /proc/%d/fd:\n", getpid());
+    char cmd[128];
+    snprintf(cmd, sizeof(cmd), "ls -l /proc/%d/fd", getpid());
+    int r = system(cmd);
+    if (r == -1)
+    {
+        perror("system");
+    }
     exit(0);
 }
 
 void wsect(uint sec, void *buf)
 {
-    if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
-        die("lseek");
-    if (write(fsfd, buf, BSIZE) != BSIZE)
-        die("write");
+    // TODO: modify
+
+    off_t off = (off_t)sec * BSIZE;
+    printf("[mkfs:wsect]: wsect sec=%u off=%ld\n", sec, (long)off);
+
+    off_t r = lseek(fsfd, off, 0);
+    if (r != off)
+    {
+        fprintf(stderr, "[mkfs:wsect]: lseek fsfd=%d to off=%ld failed return=%ld errno=%d\n",
+                fsfd, (long)off, (long)r, errno);
+        exit(0);
+    }
+    ssize_t wr = write(fsfd, buf, BSIZE);
+    if (wr != BSIZE)
+    {
+        printf("[mkfs:wsect]: write ret=%ld errno=%d (%s)\n",
+               (long)wr, errno, strerror(errno));
+        exit(1);
+    }
+
+    int fr = fsync(fsfd);
+    if (fr != 0)
+    {
+        printf("[mkfs:wsect]: fsync ret=%d errno=%d (%s)\n",
+               fr, errno, strerror(errno));
+    }
+    else
+    {
+        printf("[mkfs:wsect]: fsync ok\n");
+    }
+
+    // if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
+    //     die("lseek");
+    // if (write(fsfd, buf, BSIZE) != BSIZE)
+    //     die("write");
 }
 
 void winode(uint inum, struct dinode *ip)
@@ -227,10 +305,33 @@ void rinode(uint inum, struct dinode *ip)
 
 void rsect(uint sec, void *buf)
 {
-    if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
-        die("lseek");
-    if (read(fsfd, buf, BSIZE) != BSIZE)
-        die("read");
+
+    // TODO : modify
+    off_t off = (off_t)sec * BSIZE;
+    printf("[mkfs:rsect]: sec=%u off=%ld\n", sec, (long)off);
+
+    off_t r = lseek(fsfd, off, 0);
+    if (r != off)
+    {
+        printf("[mkfs:rsect]: lseek ret=%ld errno=%d (%s)\n",
+               (long)r, errno, strerror(errno));
+        exit(1);
+    }
+
+    ssize_t rd = read(fsfd, buf, BSIZE);
+    if (rd != BSIZE)
+    {
+        printf("[mkfs:rsect]: read ret=%ld errno=%d (%s)\n",
+               (long)rd, errno, strerror(errno));
+        exit(1);
+    }
+
+    // off_t off = (off_t)sec * BSIZE;
+    // printf("[mkfs:rsect]: rsect sec=%u off=%ld\n", sec, (long)off);
+    // if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
+    //     die("lseek");
+    // if (read(fsfd, buf, BSIZE) != BSIZE)
+    //     die("read");
 }
 
 uint ialloc(ushort type)

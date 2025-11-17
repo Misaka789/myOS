@@ -128,8 +128,8 @@ pte_t *walk_lookup(pagetable_t pt, uint64 va)
 // 参数 perm 为权限，由多个位组合而成
 int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm)
 {
-    printf("[mappages]: enter fucntion \n");
-    printf("[mappages]: argument pt = %p,va = %p,size = %d,pa = %p,perm = %d \n", pt, va, size, pa, perm);
+    // printf("[mappages]: enter fucntion \n");
+    // printf("[mappages]: argument pt = %p,va = %p,size = %d,pa = %p,perm = %d \n", pt, va, size, pa, perm);
     if (size == 0)
         return 0;
     if (va + size - 1 < va)
@@ -176,15 +176,23 @@ static pagetable_t kvmmake(void)
     extern char etext[]; // 链接脚本提供（代码段结束）
 
     // 设备恒等映射（按需添加）
-#ifdef UART0
+    // #ifdef UART0
+    //     kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+    // #endif
+    // #ifdef PLIC
+    //     kvmmap(kpgtbl, PLIC, PLIC, 0x400000, PTE_R | PTE_W); // 4MB 够用
+    // #endif
+    // #ifdef CLINT
+    //     kvmmap(kpgtbl, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+    // #endif
+    // uart registers
     kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
-#endif
-#ifdef PLIC
-    kvmmap(kpgtbl, PLIC, PLIC, 0x400000, PTE_R | PTE_W); // 4MB 够用
-#endif
-#ifdef CLINT
-    kvmmap(kpgtbl, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
-#endif
+
+    // virtio mmio disk interface
+    kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+
+    // PLIC
+    kvmmap(kpgtbl, PLIC, PLIC, 0x4000000, PTE_R | PTE_W);
 
     // 内核镜像与物理内存（恒等映射）
     // 代码段: 只读+可执行
