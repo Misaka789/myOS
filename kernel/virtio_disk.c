@@ -210,10 +210,10 @@ alloc3_desc(int *idx)
 
 void virtio_disk_rw(struct buf *b, int write)
 {
-    printf("[virtio_disk_rw]: enter function \n");
-    printf("[virtio_disk_rw]: enter, b=%p, write=%d\n", b, write);
+    // printf("[virtio_disk_rw]: enter function \n");
+    // printf("[virtio_disk_rw]: enter, b=%p, write=%d\n", b, write);
     uint64 sector = b->blockno * (BSIZE / 512);
-    printf("[virtio_disk_rw]: sector=%p\n", sector);
+    // printf("[virtio_disk_rw]: sector=%p\n", sector);
     acquire(&disk.vdisk_lock);
 
     // the spec's Section 5.2 says that legacy block operations use
@@ -225,10 +225,10 @@ void virtio_disk_rw(struct buf *b, int write)
     while (1)
     {
         int r = alloc3_desc(idx);
-        printf("[virtio_disk_rw]: alloc3_desc returned %d, idx[0]=%d, idx[1]=%d, idx[2]=%d\n",
-               r, idx[0], idx[1], idx[2]);
-        printf("[virtio_disk_rw]: disk.desc=%p, disk.info=%p, b->data=%p\n",
-               disk.desc, disk.info, b->data);
+        //   printf("[virtio_disk_rw]: alloc3_desc returned %d, idx[0]=%d, idx[1]=%d, idx[2]=%d\n",
+        //     r, idx[0], idx[1], idx[2]);
+        //  printf("[virtio_disk_rw]: disk.desc=%p, disk.info=%p, b->data=%p\n",
+        //      disk.desc, disk.info, b->data);
         if (r == 0)
         {
             break;
@@ -330,7 +330,7 @@ void virtio_disk_rw(struct buf *b, int write)
                disk.used->idx);
     }
 
-        volatile uint32 *pending = (uint32 *)(PLIC + 0x1000);
+    volatile uint32 *pending = (uint32 *)(PLIC + 0x1000);
     uint32 p0 = pending[0]; // 覆盖 IRQ 1..31 等
 
     printf("[plic_debug]: pending[0]=0x%x\n", p0);

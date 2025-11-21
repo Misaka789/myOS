@@ -535,6 +535,7 @@ void forkret(void)
     // 通过函数指针调用 trampoline_userret 完成从内核空间到用户空间的切换
     // 语法解析，(void(*)(uint64)) 是将 trampoline_userret 强制转换为一个函数指针类型
     // 该函数指针指向一个接受 uint64 类型参数并返回 void 的
+    printf("[forkret]: jumping to trampoline_userret=%p\n", trampoline_userret);
     ((void (*)(uint64))trampoline_userret)(satp);
 }
 

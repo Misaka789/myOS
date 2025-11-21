@@ -129,7 +129,12 @@ pte_t *walk_lookup(pagetable_t pt, uint64 va)
 int mappages(pagetable_t pt, uint64 va, uint64 size, uint64 pa, int perm)
 {
     // printf("[mappages]: enter fucntion \n");
-    // printf("[mappages]: argument pt = %p,va = %p,size = %d,pa = %p,perm = %d \n", pt, va, size, pa, perm);
+    if (va == TRAMPOLINE)
+    {
+        printf("[mappages]: mapping TRAMPOLINE : %p\n", TRAMPOLINE);
+        printf("[mappages]: mapping trampoline pa: %p\n", pa);
+        printf("[mappages]: argument pt = %p,va = %p,size = %d,pa = %p,perm = %d \n", pt, va, size, pa, perm);
+    }
     if (size == 0)
         return 0;
     if (va + size - 1 < va)

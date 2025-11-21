@@ -133,6 +133,17 @@ QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
+run: kernel/kernel fs.img
+	qemu-system-riscv64 $(QEMUOPTS)
+
+debug: kernel/kernel fs.img
+	qemu-system-riscv64 $(QEMUOPTS) -S -s
+
+GDB = gdb-multiarch
+
+gdb:
+	$(GDB) -ex "target remote :1234" -ex "symbol-file kernel/kernel"
+
 qemu: kernel/kernel fs.img
 	qemu-system-riscv64 $(QEMUOPTS)
 

@@ -1,6 +1,6 @@
 #ifndef TYPES_H
 #define TYPES_H
-
+#ifndef __ASSEMBLER__
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned char uchar;
@@ -18,4 +18,5 @@ typedef void (*interrupt_handler_t)(void);
 
 #define NULL ((void *)0)
 
+#endif // ASSEMBLER__
 #endif

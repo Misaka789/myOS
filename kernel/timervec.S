@@ -72,9 +72,9 @@ timervec:
 
 mtrap_exit:
     // 4. 恢复完整的上下文并返回
-    li t0,0x10000000
-    li t1 , 'I'
-    sb t1 ,0(t0)
+    //li t0,0x10000000
+    //li t1 , 'I'
+    //sb t1 ,0(t0)
     ld ra, 0(sp)
     ld gp, 16(sp)
     ld tp, 24(sp)
@@ -108,7 +108,7 @@ mtrap_exit:
     
     // 释放栈帧
     addi sp, sp, 256
-    li t0,0x10000000
-    li t1 , 'M'
-    sb t1 ,0(t0)
+    //li t0,0x10000000
+    //li t1 , 'M'
+    //sb t1 ,0(t0)
     mret

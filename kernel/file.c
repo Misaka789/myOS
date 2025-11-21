@@ -148,7 +148,10 @@ int filewrite(struct file *f, uint64 addr, int n)
     int r, ret = 0;
 
     if (f->writable == 0)
+    {
+        printf("[filewrite ERROR] f->writable is 0\n");
         return -1;
+    }
 
     if (f->type == FD_PIPE)
     {
@@ -157,7 +160,11 @@ int filewrite(struct file *f, uint64 addr, int n)
     else if (f->type == FD_DEVICE)
     {
         if (f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+        {
+            printf("[filewrite ERROR] bad device major=%d or no write func\n", f->major);
             return -1;
+        }
+        printf("[filewrite DEBUG] calling devsw write for major=%d\n", f->major);
         ret = devsw[f->major].write(1, addr, n);
     }
     else if (f->type == FD_INODE)

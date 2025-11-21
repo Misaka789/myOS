@@ -27,6 +27,11 @@ int exec(char *path, char **argv)
     int i, off;
     uint64 argc, sz = 0, sp, ustack[MAXARG], stackbase;
     struct elfhdr elf;
+
+    printf("[debug-elf] sizeof(elfhdr) = %d (expect 64)\n", sizeof(struct elfhdr));
+    printf("[debug-elf] offset of entry = %d (expect 24)\n", (uint64)&elf.entry - (uint64)&elf);
+    printf("[debug-elf] offset of phoff = %d (expect 32)\n", (uint64)&elf.phoff - (uint64)&elf);
+
     struct inode *ip;
     struct proghdr ph;
     pagetable_t pagetable = 0, oldpagetable;
@@ -41,6 +46,16 @@ int exec(char *path, char **argv)
         return -1;
     }
     ilock(ip);
+    // printf("[debug-fs] init inode addrs[0] = %d\n", ip->addrs[0]); // 添加这行
+    // printf("[exec-debug]: init first data block=%d\n", *ip.addrs[0]);
+    int r = readi(ip, 0, (uint64)&elf, 0, sizeof(elf));
+    if (r != sizeof(elf))
+    {
+        printf("[exec]: read elf header size=%d\n", r);
+        goto bad;
+    }
+    printf("[exec]: elf.magic=0x%x entry=0x%p phoff=%p phnum=%d ehsize=%d phentsize=%d\n",
+           elf.magic, elf.entry, (void *)elf.phoff, elf.phnum, elf.ehsize, elf.phentsize);
 
     // 读取elf 的头部 对 elf 进行校验
     if (readi(ip, 0, (uint64)&elf, 0, sizeof(elf)) != sizeof(elf))

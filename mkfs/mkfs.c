@@ -244,7 +244,7 @@ void wsect(uint sec, void *buf)
     // TODO: modify
 
     off_t off = (off_t)sec * BSIZE;
-    printf("[mkfs:wsect]: wsect sec=%u off=%ld\n", sec, (long)off);
+    // printf("[mkfs:wsect]: wsect sec=%u off=%ld\n", sec, (long)off);
 
     off_t r = lseek(fsfd, off, 0);
     if (r != off)
@@ -269,7 +269,7 @@ void wsect(uint sec, void *buf)
     }
     else
     {
-        printf("[mkfs:wsect]: fsync ok\n");
+        //     printf("[mkfs:wsect]: fsync ok\n");
     }
 
     // if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
@@ -308,7 +308,7 @@ void rsect(uint sec, void *buf)
 
     // TODO : modify
     off_t off = (off_t)sec * BSIZE;
-    printf("[mkfs:rsect]: sec=%u off=%ld\n", sec, (long)off);
+    //  printf("[mkfs:rsect]: sec=%u off=%ld\n", sec, (long)off);
 
     off_t r = lseek(fsfd, off, 0);
     if (r != off)

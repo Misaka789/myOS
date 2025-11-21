@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "stdarg.h"
+#include "file.h"
 #include "defs.h" // 包含统一声明
                   // 外部符号，由链接器提供
 // 解决编辑器爆红
@@ -41,6 +42,7 @@ void main()
 {
     // 1. 清零BSS段
     // BSS段包含未初始化的全局变量，C语言标准要求它们初始化为0
+
     printf("stvec = %p\n", r_stvec());
     memset(edata, 0, end - edata);
 
@@ -100,6 +102,11 @@ void main()
     binit();
     iinit();
     fileinit();
+
+    consoleinit();
+    // === 再次检查 ===
+    printf("[main DEBUG] after fileinit: devsw[1].write = %p\n", devsw[1].write);
+    // ==================
 
     // 注册中断，开启对应的中断
     register_interrupt(VIRTIO0_IRQ, virtio_disk_intr);

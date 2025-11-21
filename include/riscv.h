@@ -1,3 +1,4 @@
+
 #ifndef RISCV_H
 #define RISCV_H
 
@@ -42,7 +43,30 @@
 #endif
 #define MAKE_SATP(pgtbl) (SATP_SV39 | (((uint64)(pgtbl)) >> 12))
 
+#define MIE_MEIE (1L << 11) // 机器外部中断
+#define MIE_MTIE (1L << 7)  // 机器定时器中断
+#define MIE_MSIE (1L << 3)  // 机器软件中断
+
+#define SIE_STIE (1 << 5)
+#define SIE_SSIE (1 << 1)
+#define SIE_SEIE (1 << 9)
+
+// 机器状态寄存器位定义
+#define MSTATUS_MPP_MASK (3L << 11) // 之前的特权模式
+#define MSTATUS_MPP_M (3L << 11)    // 机器模式
+#define MSTATUS_MPP_S (1L << 11)    // 监管者模式
+#define MSTATUS_MIE (1L << 3)       // 机器中断使能
+#define MSTATUS_MPIE (1L << 7)      // 机器中断使能位的前一个值
+
+#define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
+#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
+#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
+#define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
+#define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
+
 // 读取 mhartid CSR (machine hart ID)
+
+#ifndef __ASSEMBLER__
 
 static inline uint64
 r_tp()
@@ -82,19 +106,6 @@ w_mstatus(uint64 x)
   asm volatile("csrw mstatus, %0" : : "r"(x));
 }
 
-// 机器状态寄存器位定义
-#define MSTATUS_MPP_MASK (3L << 11) // 之前的特权模式
-#define MSTATUS_MPP_M (3L << 11)    // 机器模式
-#define MSTATUS_MPP_S (1L << 11)    // 监管者模式
-#define MSTATUS_MIE (1L << 3)       // 机器中断使能
-#define MSTATUS_MPIE (1L << 7)      // 机器中断使能位的前一个值
-
-#define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
-#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
-#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
-#define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
-#define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
-
 // 读取机器中断使能寄存器 mie
 static inline uint64
 r_mie()
@@ -110,10 +121,6 @@ w_mie(uint64 x)
 {
   asm volatile("csrw mie, %0" : : "r"(x));
 }
-
-#define MIE_MEIE (1L << 11) // 机器外部中断
-#define MIE_MTIE (1L << 7)  // 机器定时器中断
-#define MIE_MSIE (1L << 3)  // 机器软件中断
 
 // 写入机器陷阱向量基址寄存器 mtvec
 static inline void
@@ -224,9 +231,6 @@ static inline uint64 r_time()
   asm volatile("csrr %0, time" : "=r"(x));
   return x;
 }
-#define SIE_STIE (1 << 5)
-#define SIE_SSIE (1 << 1)
-#define SIE_SEIE (1 << 9)
 
 static inline void w_mcounteren(uint64 x) { asm volatile("csrw mcounteren, %0" : : "r"(x)); }
 static inline uint64 r_mcounteren()
@@ -242,4 +246,5 @@ static inline void intr_on()
   w_sie(r_sie() | (1 << 1) | (1 << 9));
   w_sstatus(r_sstatus() | SSTATUS_SIE);
 }
+#endif // __ASSEMBLER__
 #endif

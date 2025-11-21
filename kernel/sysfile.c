@@ -91,10 +91,42 @@ sys_write(void)
 
     argaddr(1, &p);
     argint(2, &n);
-    if (argfd(0, 0, &f) < 0)
-        return -1;
 
-    return filewrite(f, p, n);
+    // === 添加调试日志开始 ===
+    // int fd;
+    // argint(0, &fd); // 获取文件描述符
+    // struct proc *pr = myproc();
+
+    // // 打印基本信息
+    // printf("[sys_write DEBUG] pid=%d fd=%d n=%d ", pr->pid, fd, n);
+
+    // // 尝试把用户想要写入的数据拷贝一部分到内核来打印
+    // // 注意：不能直接读取 p，因为 p 是用户态虚拟地址
+    // char buf[32];
+    // int len = n < 31 ? n : 31;
+    // if (copyin(pr->pagetable, buf, p, len) == 0)
+    // {
+    //     buf[len] = 0; // 加上字符串结束符
+    //     // 替换换行符，防止日志格式乱掉
+    //     for (int i = 0; i < len; i++)
+    //         if (buf[i] == '\n')
+    //             buf[i] = '~';
+    //     printf("content: \"%s\"\n", buf);
+    // }
+    // else
+    // {
+    //     printf("content: <copyin failed>\n");
+    // }
+    // === 添加调试日志结束 ===
+
+    if (argfd(0, 0, &f) < 0)
+    {
+        printf("[sys_write] argfd failed\n");
+        return -1;
+    }
+    int ret = filewrite(f, p, n);
+    // printf("[sys_write] ret = %d\n", ret);
+    return ret;
 }
 
 uint64

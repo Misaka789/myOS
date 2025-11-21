@@ -7,15 +7,29 @@
 #include "memlayout.h"
 #include "file.h"
 #include "fs.h"
+#include "spinlock.h"
+#include "sleeplock.h"
 
 #define BACKSPACE 0x100
 #define C(x) ((x) - '@') // Control-x
 
 // 控制台缓冲区
 #define CONSOLE_BUF_SIZE 256
+
+// struct
+// {
+//     struct spinlock lock;
+// #define INPUT_BUF_SIZE 128
+//     char buf[INPUT_BUF_SIZE];
+//     uint r; // 读位置
+//     uint w; // 写位置
+//     uint e; // 编辑位置
+// } cons;
+
 struct console
 {
     char buf[CONSOLE_BUF_SIZE];
+    struct spinlock lock;
     uint r; // 读位置
     uint w; // 写位置
     uint e; // 编辑位置
@@ -30,12 +44,12 @@ struct console
 void consoleinit(void)
 {
     // 初始化 UART
-    extern void uartinit(void);
+    initlock(&console.lock, "cons");
+
     uartinit();
 
-    // 清空控制台缓冲区
-    console.r = console.w = console.e = 0;
-    console.output_pos = 0;
+    // connect read and write system calls
+    // to consoleread and consolewrite.
     devsw[CONSOLE].read = consoleread;
     devsw[CONSOLE].write = consolewrite;
 }
@@ -186,35 +200,146 @@ void console_reset_color(void)
 int consolewrite(int user_src, uint64 src, int n)
 {
     // 使用批量写入而不是逐字符输出
-    if (user_src)
+    // if (user_src)
+    // {
+    //     // 从用户空间读取（后续实现）
+    //     for (int i = 0; i < n; i++)
+    //     {
+    //         char c = ((char *)src)[i];
+    //         if (console.output_pos < CONSOLE_BUF_SIZE - 1)
+    //         {
+    //             console.output_buf[console.output_pos++] = c;
+    //         }
+    //         if (console.output_pos >= CONSOLE_BUF_SIZE - 1)
+    //         {
+    //             console_flush();
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     // 从内核空间读取 - 直接批量处理
+    //     console_write_buf((const char *)src, n);
+    // }
+
+    // return n;
+    // printf("[consolewrite] n = %d\n", n);
+    int i;
+
+    for (i = 0; i < n; i++)
     {
-        // 从用户空间读取（后续实现）
-        for (int i = 0; i < n; i++)
-        {
-            char c = ((char *)src)[i];
-            if (console.output_pos < CONSOLE_BUF_SIZE - 1)
-            {
-                console.output_buf[console.output_pos++] = c;
-            }
-            if (console.output_pos >= CONSOLE_BUF_SIZE - 1)
-            {
-                console_flush();
-            }
-        }
-    }
-    else
-    {
-        // 从内核空间读取 - 直接批量处理
-        console_write_buf((const char *)src, n);
+        char c;
+        if (either_copyin(&c, user_src, src + i, 1) == -1)
+            break;
+        uartputc(c);
     }
 
-    return n;
+    return i;
 }
 
 // 控制台读取函数
 int consoleread(int user_dst, uint64 dst, int n)
 {
-    // TODO: 实现键盘输入读取
-    // 这需要中断处理和键盘驱动
-    return 0;
+
+    uint target;
+    int c;
+    char cbuf;
+
+    target = n;
+    acquire(&console.lock);
+    while (n > 0)
+    {
+        // wait until interrupt handler has put some
+        // input into console.buffer.
+        while (console.r == console.w)
+        {
+            if (killed(myproc()))
+            {
+                release(&console.lock);
+                return -1;
+            }
+            sleep(&console.r, &console.lock);
+        }
+
+        c = console.buf[console.r++ % CONSOLE_BUF_SIZE];
+
+        if (c == C('D'))
+        { // end-of-file
+            if (n < target)
+            {
+                // Save ^D for next time, to make sure
+                // caller gets a 0-byte result.
+                console.r--;
+            }
+            break;
+        }
+
+        // copy the input byte to the user-space buffer.
+        cbuf = c;
+        if (either_copyout(user_dst, dst, &cbuf, 1) == -1)
+            break;
+
+        dst++;
+        --n;
+
+        if (c == '\n')
+        {
+            // a whole line has arrived, return to
+            // the user-level read().
+            break;
+        }
+    }
+    release(&console.lock);
+
+    return target - n;
+}
+
+void consoleintr(int c)
+{
+    acquire(&console.lock);
+
+    switch (c)
+    {
+    case C('P'): // Print process list.
+        procdump();
+        break;
+    case C('U'): // Kill line.
+        while (console.e != console.w &&
+               console.buf[(console.e - 1) % CONSOLE_BUF_SIZE] != '\n')
+        {
+            console.e--;
+            consputc(BACKSPACE);
+        }
+        break;
+    case C('H'): // Backspace
+    case '\x7f': // Delete key
+        if (console.e != console.w)
+        {
+            console.e--;
+            consputc(BACKSPACE);
+        }
+        break;
+    default:
+        if (c != 0 && console.e - console.r < CONSOLE_BUF_SIZE)
+        {
+            c = (c == '\r') ? '\n' : c;
+
+            // echo back to the user.
+            consputc(c);
+
+            // store for consumption by consoleread().
+            console.buf[console.e++ % CONSOLE_BUF_SIZE] = c;
+
+            if (c == '\n' || c == C('D') || console.e - console.r == CONSOLE_BUF_SIZE)
+            {
+                // wake up consoleread() if a whole line (or end-of-file)
+                // has arrived.
+                console.w = console.e;
+                wakeup(&console.r);
+            }
+        }
+        break;
+    }
+
+    release(&console.lock);
 }

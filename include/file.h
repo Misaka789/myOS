@@ -2,7 +2,8 @@
 #define FILE_H
 #include "types.h"
 #include "spinlock.h"
-// #include "fs.h"
+#include "sleeplock.h"
+#include "fs.h"
 
 struct inode;
 struct pipe;

@@ -225,6 +225,9 @@ void prepare_return(void)
 {
     struct proc *p = myproc();
 
+    printf("[prepare_return]: returning to user, sepc=%p, satp=%p\n",
+           p->trapframe->epc, MAKE_SATP(p->pagetable));
+
     // we're about to switch the destination of traps from
     // kerneltrap() to usertrap(). because a trap from kernel
     // code to usertrap would be a disaster, turn off interrupts.
