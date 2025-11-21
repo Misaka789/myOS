@@ -50,13 +50,13 @@ void sync_flush(void);   // 刷新控制台输出缓冲区
 
 // buddy.c
 void pmm_init(void);
-void *alloc_pages(int);
-void free_pages(void *, int);
+// void *alloc_pages(int);
+// void free_pages(void *, int);
 void *alloc_page(void);
 void free_page(void *);
-void buddy_add_memory(void *, void *);
-void buddy_self_test(void);
-// 对外提供的接口
+// void buddy_add_memory(void *, void *);
+//  void buddy_self_test(void);
+//  对外提供的接口
 void *kalloc(void);     // 分配单个页面
 void kfree(void *page); // 释放单个页面
 

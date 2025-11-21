@@ -164,7 +164,7 @@ int filewrite(struct file *f, uint64 addr, int n)
             printf("[filewrite ERROR] bad device major=%d or no write func\n", f->major);
             return -1;
         }
-        printf("[filewrite DEBUG] calling devsw write for major=%d\n", f->major);
+        // printf("[filewrite DEBUG] calling devsw write for major=%d\n", f->major);
         ret = devsw[f->major].write(1, addr, n);
     }
     else if (f->type == FD_INODE)

@@ -142,13 +142,14 @@ void kerneltrap()
     }
     else
     { // 这里处理异常
-        // panic("[kerneltrap]: exception panic \n");
-        printf("[kerneltrap]: enter exception handler \n");
+      // panic("[kerneltrap]: exception panic \n");
+      // printf("[kerneltrap]: enter exception handler \n");
+        printf("illegal instruction at sepc=%p, stval=%p\n", r_sepc(), r_stval());
+
         uint64 code = sc & 0xfff;
         switch (code)
         {
         case 2:
-            printf("illegal instruction at sepc=%p, stval=%p\n", r_sepc(), r_stval());
             panic("illegal instruction");
             break;
         case 5:  // load page fault
@@ -174,8 +175,8 @@ void kerneltrap()
 
 uint64 usertrap(void)
 {
-    printf("[usertrap]: scause=0x%p sepc=0x%p stval=0x%p pid=%d\n",
-           r_scause(), r_sepc(), r_stval(), myproc() ? myproc()->pid : -1);
+    // printf("[usertrap]: scause=0x%p sepc=0x%p stval=0x%p pid=%d\n",
+    //        r_scause(), r_sepc(), r_stval(), myproc() ? myproc()->pid : -1);
 
     int which_dev = 0;
     if ((r_sstatus() & SSTATUS_SPP) != 0)
@@ -199,8 +200,8 @@ uint64 usertrap(void)
     }
     else
     {
-        printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
-        printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+        printf("usertrap(): unexpected scause 0x%p pid=%d\n", r_scause(), p->pid);
+        printf("            sepc=0x%p stval=0x%p\n", r_sepc(), r_stval());
         setkilled(p);
     }
 
@@ -225,8 +226,8 @@ void prepare_return(void)
 {
     struct proc *p = myproc();
 
-    printf("[prepare_return]: returning to user, sepc=%p, satp=%p\n",
-           p->trapframe->epc, MAKE_SATP(p->pagetable));
+    // printf("[prepare_return]: returning to user, sepc=%p, satp=%p\n",
+    //      p->trapframe->epc, MAKE_SATP(p->pagetable));
 
     // we're about to switch the destination of traps from
     // kerneltrap() to usertrap(). because a trap from kernel

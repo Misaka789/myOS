@@ -145,7 +145,7 @@ void syscall(void) // ecall 发生之后陷阱处理程序会调用这个函数
 
   num = p->trapframe->a7; // 系统调用号存储在 a7 寄存器中
 
-  printf("[syscall]: pid %d called sys_%d\n", p->pid, num);
+  // printf("[syscall]: pid %d called sys_%d\n", p->pid, num);
 
   if (num > 0 && num < NELEM(syscalls) && syscalls[num])
   {

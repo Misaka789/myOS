@@ -35,6 +35,13 @@ pagetable_t kernel_pagetable = 0;
 extern char trampoline[]; // trampoline.S
 static void freewalk(pagetable_t pt)
 {
+    printf("[freewalk] visiting %p\n", pt);
+    if (((uint64)pt & 0xFFF) != 0)
+    {
+        printf("[PANIC] freewalk: corrupted pointer %p\n", pt);
+        panic("freewalk corrupted");
+    }
+
     for (int i = 0; i < 512; i++)
     {
         pte_t pte = pt[i];
@@ -42,9 +49,22 @@ static void freewalk(pagetable_t pt)
             continue;
         // 页表项 pte 中存储的是下一级页表的物理地址
         // 如果不是叶子（没有 R/W/X），它指向下一层页表
+        if (((uint64)pte & 0xFF) == 0x04)
+        {
+            printf("[PANIC] freewalk: found garbage PTE at index %d: 0x%p\n", i, pte);
+            panic("freewalk garbage PTE");
+        }
         if ((pte & (PTE_R | PTE_W | PTE_X)) == 0)
         {
-            pagetable_t child = (pagetable_t)PTE2PA(pte);
+            // pagetable_t child = (pagetable_t)PTE2PA(pte);
+            uint64 child_pa = PTE2PA(pte);
+            // 再次检查子节点地址是否合法
+            if ((child_pa & 0xFF) == 0x04)
+            {
+                printf("[PANIC] freewalk: PTE %p points to garbage PA %p at index %d\n", pte, child_pa, i);
+                panic("freewalk bad child");
+            }
+            pagetable_t child = (pagetable_t)child_pa;
             freewalk(child);
             pt[i] = 0;
         }
@@ -67,7 +87,10 @@ pagetable_t create_pagetable(void)
     pagetable_t pt = (pagetable_t)kalloc();
     if (!pt)
         return 0;
-    memset(pt, 0, PGSIZE);
+    // memset(pt, 0, PGSIZE);
+    uint64 *p = (uint64 *)pt;
+    for (int i = 0; i < 512; i++)
+        p[i] = 0;
     return pt;
 }
 int map_page(pagetable_t pt, uint64 va, uint64 pa, int perm)
@@ -86,6 +109,10 @@ static pte_t *walk(pagetable_t pt, uint64 va, int alloc)
 {
     if (va >= (1ULL << 39))
         return 0; // Sv39 VA 范围保护
+
+    if (pt == 0)
+        return 0;
+
     for (int level = 2; level > 0; level--)
     {
         // PX 为取对应级别索引的宏
@@ -103,6 +130,15 @@ static pte_t *walk(pagetable_t pt, uint64 va, int alloc)
             if (!newpg)
                 return 0;
             memset(newpg, 0, PGSIZE);
+            uint64 *p = (uint64 *)newpg;
+            for (int i = 0; i < 512; i++)
+            {
+                if (p[i] != 0)
+                {
+                    printf("[PANIC] walk: memset failed at %p index %d val 0x%p\n", pt, i, p[i]);
+                    panic("memset broken");
+                }
+            }
             *pte = PA2PTE((uint64)newpg) | PTE_V;
             pt = (pagetable_t)newpg;
         }
@@ -176,7 +212,10 @@ static pagetable_t kvmmake(void)
     pagetable_t kpgtbl = (pagetable_t)kalloc();
     if (!kpgtbl)
         panic("kvmmake: no mem");
-    memset(kpgtbl, 0, PGSIZE);
+    // memset(kpgtbl, 0, PGSIZE);
+    uint64 *p = (uint64 *)kpgtbl;
+    for (int i = 0; i < 512; i++)
+        p[i] = 0;
 
     extern char etext[]; // 链接脚本提供（代码段结束）
 
@@ -267,7 +306,10 @@ pagetable_t uvmcreate() // 为用户进程创建空页表
     printf("[uvmcreate]: pagetable = %p \n", pagetable);
     if (pagetable == 0)
         return 0;
-    memset(pagetable, 0, PGSIZE);
+    // memset(pagetable, 0, PGSIZE);
+    uint64 *p = (uint64 *)pagetable;
+    for (int i = 0; i < 512; i++)
+        p[i] = 0;
     printf("[uvmcreate]: before return pagetable = %p \n", pagetable);
     return pagetable;
 }
@@ -299,7 +341,10 @@ uint64 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
             uvmdealloc(pagetable, a, oldsz);
             return 0;
         }
-        memset(mem, 0, PGSIZE);
+        // memset(mem, 0, PGSIZE);
+        uint64 *p = (uint64 *)mem;
+        for (int i = 0; i < 512; i++)
+            p[i] = 0;
         if (mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R | PTE_U | xperm) != 0)
         {
             kfree(mem);
@@ -516,6 +561,7 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     pte_t *pte;
     uint64 pa, i;
     uint flags;
+    char *mem;
     for (i = 0; i < sz; i += PGSIZE)
     {
         if ((pte = walk(old, i, 0)) == 0)
@@ -524,8 +570,17 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
             panic("uvmcopy: page not present");
         pa = PTE2PA(*pte);
         flags = PTE_FLAGS(*pte);
-        if (mappages(new, i, PGSIZE, pa, flags) < 0)
+
+        if ((mem = kalloc()) == 0)
         {
+            uvmunmap(new, 0, i / PGSIZE, 1);
+            return -1;
+        }
+        memmove(mem, (char *)pa, PGSIZE);
+
+        if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0)
+        {
+            kfree(mem);
             uvmunmap(new, 0, i / PGSIZE, 1);
             return -1;
         }
