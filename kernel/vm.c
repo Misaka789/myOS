@@ -35,7 +35,7 @@ pagetable_t kernel_pagetable = 0;
 extern char trampoline[]; // trampoline.S
 static void freewalk(pagetable_t pt)
 {
-    printf("[freewalk] visiting %p\n", pt);
+    // printf("[freewalk] visiting %p\n", pt);
     if (((uint64)pt & 0xFFF) != 0)
     {
         printf("[PANIC] freewalk: corrupted pointer %p\n", pt);

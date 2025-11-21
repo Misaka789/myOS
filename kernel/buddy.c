@@ -35,7 +35,7 @@ void kinit()
 void kfree(void *pa)
 {
     // 释放单个页面
-    printf("[kfree] freeing %p\n", pa);
+    // printf("[kfree] freeing %p\n", pa);
     struct run *r;
     if ((uint64)pa % PGSIZE != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP)
         panic("kfree");
