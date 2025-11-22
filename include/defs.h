@@ -54,6 +54,8 @@ void pmm_init(void);
 // void free_pages(void *, int);
 void *alloc_page(void);
 void free_page(void *);
+void kref_inc(void *);
+void kref_inc(void *);
 // void buddy_add_memory(void *, void *);
 //  void buddy_self_test(void);
 //  对外提供的接口
@@ -72,6 +74,7 @@ void push_off(void);
 void pop_off(void);
 
 // vm.c
+int cow_alloc(pagetable_t pagetable, uint64 va);
 pagetable_t create_pagetable(void);
 int map_page(pagetable_t pt, uint64 va, uint64 pa, int perm);
 void destory_pagetable(pagetable_t pt);

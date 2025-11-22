@@ -23,6 +23,7 @@
 #define PTE_W (1L << 2)
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4)
+#define PTE_COW (1L << 8)
 #endif
 
 #ifndef PA2PTE

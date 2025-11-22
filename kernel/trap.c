@@ -193,7 +193,14 @@ uint64 usertrap(void)
         intr_on();
         syscall();
     }
-    else if ((r_scause() == 15 || r_scause() == 13) &&
+    else if (r_scause() == 15)
+    {
+        if (cow_alloc(p->pagetable, PGROUNDDOWN(r_stval())) < 0)
+            p->killed = 1;
+        // 成功处理写时复制
+        printf("[usertrap]: COW handled for pid=%d at va=0x%p\n", p->pid, r_stval());
+    }
+    else if ((r_scause() == 13) &&
              vmfault(p->pagetable, r_stval(), (r_scause() == 13) ? 1 : 0) != 0)
     {
         // page fault on lazily-allocated page

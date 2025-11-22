@@ -285,12 +285,13 @@ volatile int test_flag = 0; // 用于测试中断处理函数是否被调用
 void clockintr_test()
 {
     printf("[Test] clockintr_test begin\n");
+    intr_on(); // 确保中断已开启
     uint64 start = r_time();
-    // int interrupt_count = 0;
-    // test_flag = &interrupt_count;
+    int interrupt_count = 0;
+    test_flag = interrupt_count;
     while (test_flag < 5)
     {
-        printf("Waiting for timer interrupts... count=%d\n", test_flag);
+        // printf("Waiting for timer interrupts... count=%d\n", test_flag);
         for (volatile int i = 0; i < 10000000; i++)
             asm volatile("nop");
     }

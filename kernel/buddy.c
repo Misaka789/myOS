@@ -26,9 +26,26 @@ struct
     struct run *freelist;
 } kmem;
 
+struct spinlock ref_lock;
+int ref_counts[(PHYSTOP - KERNBASE) / PGSIZE];
+
+int pa2idx(uint64 pa)
+{
+    return ((pa - KERNBASE) / PGSIZE);
+}
+
+void kref_inc(void *pa)
+{
+    acquire(&ref_lock);
+    int idx = pa2idx((uint64)pa);
+    ref_counts[idx]++;
+    release(&ref_lock);
+}
+
 void kinit()
 {
     initlock(&kmem.lock, "kmem");
+    initlock(&ref_lock, "ref_lock");
     freerange(end, (void *)PHYSTOP);
 }
 
@@ -40,6 +57,22 @@ void kfree(void *pa)
     if ((uint64)pa % PGSIZE != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP)
         panic("kfree");
 
+    // 用于实现 copyOnWrite 只有引用计数为0 的时候才会释放
+    acquire(&ref_lock);
+    int idx = pa2idx((uint64)pa);
+    if (ref_counts[idx] > 0)
+    {
+        ref_counts[idx]--;
+    }
+    if (ref_counts[idx] > 0)
+    {
+        // 说明还有其他进程在使用，不释放内存
+        release(&ref_lock);
+        return;
+    }
+
+    release(&ref_lock);
+    // 说明没有其他进程在使用，可以释放内存
     memset(pa, 1, PGSIZE); // Fill with junk to catch dangling refs.
 
     r = (struct run *)pa;
@@ -68,6 +101,9 @@ void *kalloc(void)
         kmem.freelist = r->next;
     release(&kmem.lock);
     printf("[kalloc] allocated %p\n", r);
+    acquire(&ref_lock);
+    ref_counts[pa2idx((uint64)r)] = 1; // 新分配的页面引用计数设为1
+    release(&ref_lock);
     if (r)
         memset((char *)r, 5, PGSIZE); // fill with junk
     return (void *)r;

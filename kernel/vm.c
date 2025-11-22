@@ -433,11 +433,19 @@ int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 { // 从内核空间拷贝数据到用户空间
     uint64 n, va0, pa0;
-    // pte_t *pte;
+    pte_t *pte;
 
     while (len > 0)
     {
         va0 = PGROUNDDOWN(dstva);
+        pte = walk(pagetable, va0, 0);
+        if (pte && (*pte & PTE_V) && (*pte & PTE_COW))
+        {
+            // 说明是写时复制页面
+            if (cow_alloc(pagetable, va0) < 0)
+                return -1;
+        }
+
         if (va0 >= MAXVA)
             return -1;
 
@@ -556,12 +564,12 @@ uint64 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     return newsz;
 }
 
-int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
-{ // 复制用户内存
+int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz) /// 将深拷贝改回为浅拷贝
+{                                                        // 复制用户内存
     pte_t *pte;
     uint64 pa, i;
     uint flags;
-    char *mem;
+    // char *mem;
     for (i = 0; i < sz; i += PGSIZE)
     {
         if ((pte = walk(old, i, 0)) == 0)
@@ -569,21 +577,69 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
         if ((*pte & PTE_V) == 0)
             panic("uvmcopy: page not present");
         pa = PTE2PA(*pte);
+
+        if (*pte & PTE_W)
+        {
+            // 如果原本是可写的，则改为只读并设置 COW 标志
+            flags = (PTE_FLAGS(*pte) & ~PTE_W) | PTE_COW;
+            *pte = PA2PTE(pa) | flags | PTE_V;
+        }
         flags = PTE_FLAGS(*pte);
 
-        if ((mem = kalloc()) == 0)
-        {
-            uvmunmap(new, 0, i / PGSIZE, 1);
-            return -1;
-        }
-        memmove(mem, (char *)pa, PGSIZE);
+        if (mappages(new, i, PGSIZE, pa, flags) != 0)
+            goto err;
 
-        if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0)
-        {
-            kfree(mem);
-            uvmunmap(new, 0, i / PGSIZE, 1);
-            return -1;
-        }
+        kref_inc((void *)pa); // 增加页面的引用计数
     }
+    sfence_vma();
+    return 0;
+err:
+    uvmunmap(new, 0, i / PGSIZE, 1);
+    return -1;
+
+    //     if ((mem = kalloc()) == 0)
+    //     {
+    //         uvmunmap(new, 0, i / PGSIZE, 1);
+    //         return -1;
+    //     }
+    //     memmove(mem, (char *)pa, PGSIZE);
+
+    //     if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0)
+    //     {
+    //         kfree(mem);
+    //         uvmunmap(new, 0, i / PGSIZE, 1);
+    //         return -1;
+    //     }
+    // }
+    // return 0;
+}
+
+// copy-on-write 页面分配函数
+int cow_alloc(pagetable_t pagetable, uint64 va)
+{
+    pte_t *pte;
+    uint64 pa;
+    uint flags;
+    if (va >= MAXVA)
+        return -1;
+    pte = walk(pagetable, va, 0);
+    if (pte == 0)
+        return -1;
+    if ((*pte & PTE_V) == 0)
+        return -1;
+    if ((*pte & PTE_U) == 0)
+        return -1;
+    if (!(*pte & PTE_COW))
+        return -1;
+    pa = PTE2PA(*pte);
+    char *mem = kalloc();
+    if (mem == 0)
+        return -1;
+    memmove(mem, (char *)pa, PGSIZE);
+    flags = PTE_FLAGS(*pte);
+    flags = (flags | PTE_W) & ~PTE_COW; // 设置为可写，清除 COW 标志
+    *pte = PA2PTE((uint64)mem) | flags | PTE_V;
+    kfree((void *)pa); // 释放旧的只读页面
+    sfence_vma();
     return 0;
 }

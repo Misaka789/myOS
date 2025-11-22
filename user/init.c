@@ -146,6 +146,54 @@ void test_concurrent_access(void)
     printf("[file test]: Concurrent access test completed (placeholder)\n");
 }
 
+int global_data = 100;
+
+void cow_test(void)
+{
+    printf("Running basic COW test...\n");
+    int pid = fork();
+    if (pid < 0)
+    {
+        printf("fork failed\n");
+        exit(1);
+    }
+
+    if (pid == 0)
+    {
+        // 子进程
+        // 1. 读取数据，此时应共享物理页
+        if (global_data != 100)
+        {
+            printf("Child: read error\n");
+            exit(1);
+        }
+
+        // 2. 写入数据，应触发 COW
+        printf("Child: modifying memory...\n");
+        global_data = 200;
+
+        if (global_data != 200)
+        {
+            printf("Child: write error\n");
+            exit(1);
+        }
+        printf("Child: modification success\n");
+        exit(0);
+    }
+    else
+    {
+        // 父进程
+        wait(0);
+        // 3. 检查父进程数据是否保持不变
+        if (global_data != 100)
+        {
+            printf("Parent: error! Data modified by child.\n");
+            exit(1);
+        }
+        printf("Parent: Data remains %d (Correct)\n", global_data);
+    }
+}
+
 int main(void)
 {
     int fd;
@@ -158,9 +206,11 @@ int main(void)
     dup(0);
     dup(0);
     printf("init: starting sh\n");
-    // process_test();
+    process_test();
     test_filesystem_integrity();
-    // test_concurrent_access();
+    cow_test();
+    pritnf("init: all tests completed\n");
+    //  test_concurrent_access();
     for (;;)
     {
     };

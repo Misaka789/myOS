@@ -87,7 +87,7 @@ void main()
     // intr_on(); // 允许 SIE 中断
     printf("after intr_on sstatus = %p\n", r_sstatus());
 
-    // clockintr_test();
+    clockintr_test();
     procinit();
     // userinit(); // 创建第一个用户进程
 
