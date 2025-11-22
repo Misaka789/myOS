@@ -158,9 +158,9 @@ int main(void)
     dup(0);
     dup(0);
     printf("init: starting sh\n");
-    process_test();
-    // test_filesystem_integrity();
-    //  test_concurrent_access();
+    // process_test();
+    test_filesystem_integrity();
+    // test_concurrent_access();
     for (;;)
     {
     };

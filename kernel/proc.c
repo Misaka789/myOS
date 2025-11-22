@@ -340,7 +340,7 @@ void sleep(void *chan, struct spinlock *lk)
 
 void wakeup(void *chan)
 {
-    printf("[wakeup]: enter function \n");
+    // printf("[wakeup]: enter function \n");
     struct proc *p;
     for (p = proc; p < &proc[NPROC]; p++)
     {
@@ -348,7 +348,10 @@ void wakeup(void *chan)
         {
             acquire(&p->lock);
             if (p->state == SLEEPING && p->chan == chan)
+            {
                 p->state = RUNNABLE;
+                printf("[wakeup]: wakeup proc pid = %d \n", p->pid);
+            }
             release(&p->lock);
         }
     }
